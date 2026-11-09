@@ -1,0 +1,521 @@
+:root {
+  --fondo: #faf5ee;
+  --tarjeta: #ffffff;
+  --texto: #2b2420;
+  --suave: #75695f;
+  --borde: #e8ddd0;
+  --acento: #c2552d;
+  --acento-oscuro: #9f4220;
+  --acento-claro: #fbe9e0;
+  --verde: #2f6b55;
+  --verde-claro: #e3f1ea;
+  --amarillo-claro: #fdf3d3;
+  --rojo-claro: #fde5e2;
+  --sombra: 0 2px 10px rgba(80, 50, 20, .08);
+  --radio: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #1c1815;
+    --tarjeta: #28221e;
+    --texto: #f3ebe3;
+    --suave: #b3a598;
+    --borde: #3d342d;
+    --acento: #ee7d52;
+    --acento-oscuro: #f59a76;
+    --acento-claro: #40261b;
+    --verde: #7fcbac;
+    --verde-claro: #1e332b;
+    --amarillo-claro: #3a3118;
+    --rojo-claro: #3f2220;
+    --sombra: 0 2px 10px rgba(0, 0, 0, .35);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+#app {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 16px 120px;
+}
+
+h1, h2, h3 { line-height: 1.2; margin: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--acento); }
+
+/* ---------- Inicio ---------- */
+.cabecera { text-align: center; margin: 16px 0 28px; }
+.cabecera h1 { font-size: clamp(2rem, 6vw, 3rem); letter-spacing: -.02em; }
+.cabecera h1 span { color: var(--acento); }
+.cabecera p { color: var(--suave); margin: 8px auto 0; max-width: 520px; }
+
+.buscador {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--borde);
+  border-radius: 999px;
+  background: var(--tarjeta);
+  outline: none;
+}
+.buscador:focus { border-color: var(--acento); }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 24px; }
+.chip {
+  border: 1.5px solid var(--borde);
+  background: var(--tarjeta);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: .92rem;
+}
+.chip.activo { background: var(--acento); border-color: var(--acento); color: #fff; }
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.tarjeta {
+  position: relative;
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: transform .15s;
+}
+.tarjeta:hover { transform: translateY(-3px); }
+.tarjeta .foto {
+  font-size: 4.2rem;
+  text-align: center;
+  padding: 22px 0;
+  background: var(--acento-claro);
+}
+.tarjeta .cuerpo { padding: 14px 16px 16px; }
+.tarjeta h3 { font-size: 1.2rem; }
+.tarjeta p { color: var(--suave); font-size: .92rem; margin: 6px 0 10px; }
+
+.datos { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .88rem; color: var(--suave); }
+
+.fav {
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--tarjeta);
+  box-shadow: var(--sombra);
+  font-size: 1.15rem;
+}
+
+.vacio { text-align: center; color: var(--suave); padding: 40px 0; }
+
+/* ---------- Detalle ---------- */
+.volver {
+  display: inline-block;
+  margin-bottom: 14px;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.heroe {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 24px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  position: relative;
+}
+.heroe .emoji {
+  font-size: 4.5rem;
+  background: var(--acento-claro);
+  border-radius: var(--radio);
+  width: 120px; height: 120px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.heroe h1 { font-size: clamp(1.6rem, 5vw, 2.3rem); padding-right: 44px; }
+.heroe p { color: var(--suave); margin: 8px 0 12px; }
+
+.columnas {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 22px;
+  margin-top: 22px;
+  align-items: start;
+}
+
+.panel {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.panel h2 { font-size: 1.2rem; margin-bottom: 12px; }
+
+.porciones { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.porciones button {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--borde);
+  background: var(--fondo);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+.porciones strong { min-width: 110px; text-align: center; }
+
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { padding: 7px 0; border-bottom: 1px dashed var(--borde); }
+.lista li:last-child { border-bottom: none; }
+.lista label { display: flex; gap: 10px; cursor: pointer; align-items: flex-start; }
+.lista input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--verde); flex-shrink: 0; }
+.lista input:checked + span { text-decoration: line-through; color: var(--suave); }
+.lista small { display: block; color: var(--suave); }
+
+.aviso {
+  background: var(--amarillo-claro);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: .9rem;
+  margin-top: 12px;
+}
+
+.boton {
+  display: inline-block;
+  border: none;
+  border-radius: 999px;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 26px;
+  text-decoration: none;
+  text-align: center;
+}
+.boton:hover { background: var(--acento-oscuro); }
+.boton.grande { width: 100%; font-size: 1.1rem; }
+.boton.secundario { background: transparent; color: var(--texto); border: 1.5px solid var(--borde); }
+.boton.secundario:hover { background: var(--tarjeta); }
+.boton:disabled { opacity: .35; cursor: default; }
+
+/* ---------- Pasos ---------- */
+.paso { margin-bottom: 26px; }
+.paso:last-child { margin-bottom: 0; }
+.paso-cabeza { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+.numero {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 700;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+.paso h3 { font-size: 1.12rem; }
+.paso p { margin: 0 0 10px; }
+
+.nota {
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  font-size: .95rem;
+}
+.nota b { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+.nota.senal { background: var(--verde-claro); }
+.nota.senal b { color: var(--verde); }
+.nota.consejo { background: var(--amarillo-claro); }
+.nota.error { background: var(--rojo-claro); }
+
+.btn-tiempo {
+  border: 1.5px solid var(--acento);
+  background: transparent;
+  color: var(--acento);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+.btn-tiempo:hover { background: var(--acento-claro); }
+
+/* ---------- Modo cocina ---------- */
+.cocina-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+.cocina-barra span { color: var(--suave); font-size: .95rem; }
+.progreso { height: 8px; background: var(--borde); border-radius: 99px; overflow: hidden; margin-bottom: 22px; }
+.progreso div { height: 100%; background: var(--acento); border-radius: 99px; transition: width .3s; }
+
+.cocina .panel { padding: 28px; font-size: 1.2rem; }
+.cocina .paso h3 { font-size: 1.6rem; }
+.cocina .numero { width: 48px; height: 48px; font-size: 1.3rem; }
+.cocina .nota { font-size: 1.05rem; }
+
+.cocina-nav { display: flex; gap: 12px; }
+.cocina-nav .boton { flex: 1; font-size: 1.1rem; }
+
+.final { text-align: center; }
+.final .emoji { font-size: 5rem; }
+.final h2 { font-size: 2rem; margin: 6px 0 12px; }
+
+/* ---------- Temporizador flotante ---------- */
+.temporizador {
+  position: fixed;
+  left: 50%; bottom: 18px;
+  transform: translateX(-50%);
+  background: var(--texto);
+  color: var(--fondo);
+  border-radius: 999px;
+  padding: 10px 12px 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
+  max-width: calc(100vw - 24px);
+  z-index: 10;
+}
+.temporizador[hidden] { display: none; }
+.temporizador .reloj { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.temporizador .etiqueta { font-size: .85rem; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.temporizador button {
+  border: none;
+  border-radius: 999px;
+  background: rgba(128, 128, 128, .35);
+  color: inherit;
+  padding: 8px 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.temporizador.terminado { background: var(--acento); color: #fff; animation: latido .7s infinite alternate; }
+@keyframes latido { to { transform: translateX(-50%) scale(1.06); } }
+
+@media (max-width: 760px) {
+  .columnas { grid-template-columns: 1fr; }
+  .heroe { flex-direction: column; text-align: center; }
+  .heroe h1 { padding-right: 0; }
+  .heroe .datos { justify-content: center; }
+  .cocina .panel { padding: 20px; font-size: 1.1rem; }
+}
+
+/* ============ Diseño extra: colores, animaciones, nevera y ruleta ============ */
+:root { --l1: 91%; --l2: 82%; }
+@media (prefers-color-scheme: dark) { :root { --l1: 26%; --l2: 18%; } }
+
+body {
+  background:
+    radial-gradient(900px 420px at 10% -10%, var(--acento-claro), transparent 70%),
+    radial-gradient(700px 380px at 100% 0%, var(--verde-claro), transparent 70%),
+    var(--fondo);
+  background-attachment: fixed;
+}
+
+#app > * { animation: entrar .35s ease both; }
+@keyframes entrar { from { opacity: 0; transform: translateY(10px); } }
+
+.suave { color: var(--suave); margin: 0 0 14px; }
+.titulo-seccion { font-size: 1.3rem; margin: 26px 0 16px; }
+
+/* Botones grandes del inicio */
+.acciones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; text-align: left; }
+.accion {
+  display: flex; align-items: center; gap: 14px;
+  border: none; border-radius: var(--radio);
+  padding: 16px 18px;
+  color: #fff; text-decoration: none; text-align: left;
+  box-shadow: var(--sombra);
+  transition: transform .15s, box-shadow .15s;
+}
+.accion:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 8px 22px rgba(0, 0, 0, .18); }
+.accion span { font-size: 2.4rem; transition: transform .3s; }
+.accion:hover span { transform: rotate(-12deg) scale(1.15); }
+.accion strong { display: block; font-size: 1.1rem; color: #fff; }
+.accion small { opacity: .9; color: #fff; }
+.accion.nevera { background: linear-gradient(135deg, #2f8f83, #2b6cb0); }
+.accion.sorpresa { background: linear-gradient(135deg, #e0652f, #c2377a); }
+
+/* Tarjetas con color por categoría */
+.tarjeta { animation: entrar .4s ease both; }
+.tarjeta:hover { box-shadow: 0 10px 26px rgba(80, 50, 20, .16); }
+.tarjeta .foto {
+  position: relative;
+  background: linear-gradient(135deg, hsl(var(--tono) 90% var(--l1)), hsl(calc(var(--tono) + 28) 85% var(--l2)));
+}
+.tarjeta .foto span { display: inline-block; transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.tarjeta:hover .foto span { transform: scale(1.22) rotate(-8deg); }
+.tarjeta .foto em {
+  position: absolute; left: 10px; bottom: 10px;
+  font-style: normal; font-size: .75rem; font-weight: 600;
+  background: var(--tarjeta); color: var(--texto);
+  border-radius: 99px; padding: 3px 10px;
+}
+.heroe .emoji { background: linear-gradient(135deg, hsl(var(--tono) 90% var(--l1)), hsl(calc(var(--tono) + 28) 85% var(--l2))); }
+
+.fav { transition: transform .15s; }
+.fav:hover { transform: scale(1.15); }
+.fav:active { transform: scale(.85); }
+.chip { transition: transform .1s, background .15s; }
+.chip:active { transform: scale(.93); }
+.chip.grande { padding: 9px 16px; font-size: 1rem; }
+
+/* Nevera */
+.barra-nevera { height: 8px; background: var(--borde); border-radius: 99px; overflow: hidden; margin: 10px 0 8px; }
+.barra-nevera div { height: 100%; background: var(--verde); border-radius: 99px; transition: width .4s; }
+.tarjeta p.falta { color: var(--suave); }
+.tarjeta p.completa { color: var(--verde); font-weight: 700; }
+
+/* Confeti */
+.confeti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 30; }
+.confeti span { position: absolute; top: -50px; animation: caer 3s linear forwards; }
+@keyframes caer { to { transform: translateY(110vh) rotate(540deg); } }
+
+.final .emoji { animation: pum .6s cubic-bezier(.3, 1.8, .5, 1); }
+
+@media (max-width: 760px) {
+  .acciones { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ============ Fotos reales (carpeta fotos/, un archivo <id>.jpg por receta) ============ */
+.tarjeta .foto { height: 170px; padding: 0; display: grid; place-items: center; overflow: hidden; }
+.tarjeta .foto img, .heroe .emoji img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform .4s;
+}
+.tarjeta:hover .foto img { transform: scale(1.07); }
+.tarjeta .foto em { z-index: 1; }
+.con-foto > span { visibility: hidden; }
+.heroe .emoji { position: relative; overflow: hidden; }
+.heroe .emoji.con-foto { width: 200px; height: 160px; }
+@media (max-width: 760px) {
+  .heroe .emoji.con-foto { width: 100%; height: 200px; }
+}
+
+/* ============ Aspecto de libro de cocina ============ */
+:root { --papel: #fffaf0; --papel-sombra: rgba(90, 60, 20, .16); --lomo: #7a3b1d; }
+@media (prefers-color-scheme: dark) {
+  :root { --papel: #2c2620; --papel-sombra: rgba(0, 0, 0, .5); --lomo: #5a2c16; }
+}
+
+h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
+.pista { text-align: center; color: var(--suave); font-size: .88rem; margin-top: 14px; }
+
+/* Libro abierto: dos hojas con el lomo en el centro */
+.libro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  perspective: 2200px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  background: var(--lomo);
+  padding: 10px;
+  box-shadow: 0 18px 40px var(--papel-sombra);
+}
+.hoja {
+  position: relative;
+  background: var(--papel);
+  padding: 26px 26px 46px;
+  min-height: 520px;
+  backface-visibility: hidden;
+}
+.hoja.izquierda {
+  border-radius: 6px 0 0 6px;
+  transform-origin: right center;
+  background-image: linear-gradient(to left, var(--papel-sombra), transparent 9%);
+}
+.hoja.derecha {
+  border-radius: 0 6px 6px 0;
+  transform-origin: left center;
+  background-image: linear-gradient(to right, var(--papel-sombra), transparent 9%);
+}
+.hoja h2 { font-size: 1.7rem; margin: 4px 0 8px; }
+.hoja h3 { font-size: 1.25rem; margin-bottom: 10px; border-bottom: 2px solid var(--acento); padding-bottom: 6px; display: inline-block; }
+.hoja p { margin: 0 0 12px; }
+.hoja .boton { margin-top: 6px; }
+.capitulo { text-transform: uppercase; letter-spacing: .12em; font-size: .75rem; color: var(--acento); font-weight: 700; }
+.folio {
+  position: absolute; bottom: 14px; left: 0; right: 0;
+  text-align: center; color: var(--suave);
+  font-family: Georgia, serif; font-style: italic; font-size: .9rem;
+}
+.lamina {
+  position: relative; overflow: hidden;
+  height: 210px; border-radius: 8px; margin-bottom: 16px;
+  display: grid; place-items: center; font-size: 5.5rem;
+  background: linear-gradient(135deg, hsl(var(--tono) 90% var(--l1)), hsl(calc(var(--tono) + 28) 85% var(--l2)));
+}
+.lamina img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+/* Animación de pasar la página */
+.libro.adelante .hoja.izquierda { animation: hojaCaeIzquierda .65s cubic-bezier(.3, .7, .3, 1) both; }
+.libro.adelante .hoja.derecha { animation: aparecer .5s ease both; }
+.libro.atras .hoja.derecha { animation: hojaCaeDerecha .65s cubic-bezier(.3, .7, .3, 1) both; }
+.libro.atras .hoja.izquierda { animation: aparecer .5s ease both; }
+@keyframes hojaCaeIzquierda {
+  from { transform: rotateY(150deg); filter: brightness(.6); }
+  to { transform: rotateY(0); filter: none; }
+}
+@keyframes hojaCaeDerecha {
+  from { transform: rotateY(-150deg); filter: brightness(.6); }
+  to { transform: rotateY(0); filter: none; }
+}
+@keyframes aparecer { from { opacity: 0; } }
+
+/* Modo cocina: cada paso es una hoja que se pasa */
+.cocina { perspective: 2200px; }
+.hoja-suelta {
+  position: relative;
+  background: var(--papel);
+  background-image: linear-gradient(to right, var(--papel-sombra), transparent 5%);
+  border-left: 8px solid var(--lomo);
+  padding-bottom: 48px !important;
+}
+.hoja-suelta.adelante { transform-origin: left center; animation: hojaPasa .55s cubic-bezier(.3, .7, .3, 1) both; }
+.hoja-suelta.atras { transform-origin: left center; animation: hojaVuelve .55s cubic-bezier(.3, .7, .3, 1) both; }
+@keyframes hojaPasa {
+  from { transform: rotateY(-95deg); filter: brightness(.6); }
+  to { transform: rotateY(0); filter: none; }
+}
+@keyframes hojaVuelve {
+  from { transform: rotateY(25deg) translateX(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Paneles con tono de papel */
+.panel, .heroe { background: var(--papel); }
+
+@media (max-width: 760px) {
+  .libro { grid-template-columns: 1fr; }
+  .hoja { min-height: 0; }
+  .hoja.izquierda { border-radius: 6px 6px 0 0; transform-origin: left center; }
+  .hoja.derecha { border-radius: 0 0 6px 6px; }
+  .libro.adelante .hoja.izquierda { animation-name: hojaPasa; }
+  .libro.atras .hoja.derecha { animation-name: aparecer; }
+}
+
+.credito { font-size: .75rem; color: var(--suave); margin: 10px 0 0 !important; }
+.credito a { color: inherit; }
+
+.capitulos { color: var(--suave); font-size: .9rem; }
+.capitulos select { font: inherit; color: var(--texto); background: var(--tarjeta); border: 1.5px solid var(--borde); border-radius: 99px; padding: 5px 10px; margin-left: 6px; }
+#pie-rejilla { margin-top: 18px; }
