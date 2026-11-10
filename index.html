@@ -2,28 +2,40 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Paso a Paso · Recetas explicadas</title>
   <meta name="theme-color" content="#98501b">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.png" type="image/png">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    /* Aplica el tema guardado antes de pintar la página, para que no parpadee */
+    try { var t = JSON.parse(localStorage.getItem('tema')); if (t === 'claro' || t === 'oscuro') document.documentElement.setAttribute('data-tema', t); } catch (e) { /* tema automático */ }
+  </script>
 </head>
 <body>
-  <nav class="menu" aria-label="Secciones">
-    <a href="#/">🏠<span>Recetas</span></a>
-    <a href="#/nevera">🧊<span>Nevera</span></a>
-    <a href="#/plan">📅<span>Plan</span></a>
-    <a href="#/compras">🛒<span>Compras</span></a>
-    <a href="#/aprender">🎓<span>Aprender</span></a>
-    <a href="#/progreso"><b id="menu-nivel">🌱 0</b><span>Mi progreso</span></a>
-    <button data-accion="letra" title="Cambiar tamaño de letra">A<span>Letra</span></button>
-  </nav>
+  <header class="barra">
+    <a class="marca" href="#/" aria-label="Paso a Paso, inicio"><img src="favicon.png" alt="" width="36" height="36"><span>Paso a Paso</span></a>
+    <nav class="menu" aria-label="Secciones">
+      <a href="#/" data-ruta="recetas">🏠<span>Recetas</span></a>
+      <a href="#/nevera" data-ruta="nevera">🧊<span>Nevera</span></a>
+      <a href="#/plan" data-ruta="plan">📅<span>Plan</span></a>
+      <a href="#/compras" data-ruta="compras">🛒<span>Compras</span></a>
+      <a href="#/aprender" data-ruta="aprender">🎓<span>Aprender</span></a>
+      <a href="#/progreso" data-ruta="progreso"><b id="menu-nivel">🌱 0</b><span>Progreso</span></a>
+    </nav>
+    <div class="barra-acciones">
+      <button id="btn-tema" data-accion="tema" type="button" title="Cambiar tema">🌓</button>
+      <button data-accion="letra" type="button" title="Letra más grande o más pequeña" aria-label="Cambiar tamaño de letra">Aa</button>
+      <a class="perfil-btn" href="#/perfil" title="Mi perfil"><span id="perfil-avatar">👤</span><b id="perfil-nombre">Entrar</b></a>
+    </div>
+  </header>
   <main id="app"></main>
   <div id="temporizador" class="temporizador" hidden></div>
 
-  <!-- Recetas escritas una por una: recetas.js y recetas-mas.js. Recetas por familias: familias-*.js y japonesa.js. -->
+  <!-- Recetas escritas una por una: recetas.js y recetas-mas.js. Recetas por familias: familias-*.js, japonesa.js y cocinas-*.js. -->
+  <script src="perfil.js"></script>
   <script src="recetas.js"></script>
   <script src="recetas-mas.js"></script>
   <script src="familias-1.js"></script>

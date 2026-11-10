@@ -8,8 +8,9 @@ var EXTRAS = (function () {
   'use strict';
   var A = function () { return window.APP; };
   var mem = {
-    leer: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-    guardar: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
+    // Los datos de cada persona van aparte (ver perfil.js)
+    leer: function (k, d) { try { var v = localStorage.getItem(PERFIL.clave(k)); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    guardar: function (k, v) { try { localStorage.setItem(PERFIL.clave(k), JSON.stringify(v)); } catch (e) { /* sin almacenamiento */ } }
   };
   function sinT(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
@@ -726,8 +727,95 @@ var EXTRAS = (function () {
     pintar();
   }
 
+  // ================================================================ PERFIL: crear usuario en un paso
+  function omitida() { try { return sessionStorage.getItem('omitirBienvenida') === '1'; } catch (e) { return false; } }
+  function avataresHTML(sel) {
+    return '<div class="avatares" role="group" aria-label="Elige un avatar">' + PERFIL.AVATARES.map(function (a) {
+      return '<button type="button" class="avatar' + (a === sel ? ' sel' : '') + '" data-accion="avatar" data-valor="' + a + '" aria-label="Avatar ' + a + '">' + a + '</button>';
+    }).join('') + '</div>';
+  }
+  function avatarElegido(contenedor, defecto) {
+    var s = contenedor && contenedor.querySelector('.avatar.sel');
+    return s ? s.dataset.valor : defecto;
+  }
+  // En la portada: si todavía no hay nombre, una tarjeta de bienvenida; si ya hay, un saludo.
+  function bienvenidaHTML() {
+    var yo = PERFIL.actual();
+    if (yo.n) return '<p class="saludo">Hola, <strong>' + esc(yo.n) + '</strong> ' + yo.e + '</p>';
+    if (omitida()) return '';
+    return '<section class="bienvenida" id="bienvenida"><h2>👋 ¡Hola! ¿Cómo te llamas?</h2>' +
+      '<p>Así guardo tus favoritos, tu plan de la semana, tus compras y lo que has cocinado. No pido correo ni contraseña.</p>' +
+      '<div class="fila-nombre"><input class="buscador" id="nombre-nuevo" maxlength="24" placeholder="Tu nombre" autocomplete="given-name"><button class="boton" data-accion="perfil-crear">Empezar</button></div>' +
+      avataresHTML(PERFIL.AVATARES[0]) +
+      '<button class="chip" data-accion="perfil-omitir">Ahora no</button></section>';
+  }
+  function verPerfil() {
+    var yo = PERFIL.actual(), todos = PERFIL.todos();
+    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' +
+      '<div class="panel"><h2>👤 Mi perfil</h2><p class="suave">Elige quién está cocinando. Cada persona tiene sus propios favoritos, plan, compras y progreso.</p>' +
+        todos.map(function (p) {
+          return '<div class="perfil-fila' + (p.id === yo.id ? ' actual' : '') + '"><span class="grande">' + (p.n ? p.e : '👤') + '</span><div class="quien"><strong>' + esc(p.n || 'Sin nombre') + '</strong></div>' +
+            (p.id !== yo.id ? '<button class="boton secundario" data-accion="perfil-usar" data-id="' + esc(p.id) + '">Usar este perfil</button>' : '') +
+            (todos.length > 1 ? '<button class="boton secundario" data-accion="perfil-borrar" data-id="' + esc(p.id) + '" aria-label="Borrar el perfil de ' + esc(p.n || 'sin nombre') + '">🗑</button>' : '') + '</div>';
+        }).join('') + '</div>' +
+      '<div class="panel" id="panel-editar"><h2>✏️ ' + (yo.n ? 'Cambiar mi nombre o avatar' : 'Ponerle nombre a mi perfil') + '</h2>' +
+        '<div class="fila-nombre"><input class="buscador" id="perfil-editar-nombre" maxlength="24" placeholder="Tu nombre" value="' + esc(yo.n) + '"><button class="boton" data-accion="perfil-guardar">Guardar</button></div>' + avataresHTML(yo.e) + '</div>' +
+      '<div class="panel" id="panel-otra"><h2>➕ Agregar a otra persona</h2><p class="suave">Para que más gente de tu casa use este mismo celular, cada quien con lo suyo.</p>' +
+        '<div class="fila-nombre"><input class="buscador" id="nombre-otro" maxlength="24" placeholder="Nombre"><button class="boton" data-accion="perfil-agregar">Agregar y entrar</button></div>' + avataresHTML(PERFIL.AVATARES[(todos.length + 1) % PERFIL.AVATARES.length]) + '</div>' +
+      '<div class="panel"><h2>🎨 Tema</h2><div class="filtros" style="margin:0">' + [['auto', '🌓 Automático'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']].map(function (t) {
+        return '<button class="chip grande' + (PERFIL.tema() === t[0] ? ' activo' : '') + '" data-accion="tema-elegir" data-valor="' + t[0] + '">' + t[1] + '</button>';
+      }).join('') + '</div><p class="pista izq">«Automático» sigue el modo claro u oscuro de tu celular. También puedes cambiarlo con el botón de arriba.</p></div>' +
+      '<div class="panel"><h2>💾 Llévate tus datos</h2><p class="suave">Tus datos están solo en este celular y no hay contraseña. Para usarlos en otro celular (o guardarlos por si borras el navegador), copia tu código y pégalo allá.</p>' +
+        '<div class="fila-botones"><button class="boton" data-accion="perfil-exportar">📋 Copiar mi código</button></div>' +
+        '<textarea class="codigo" id="codigo-salida" readonly placeholder="Aquí aparece tu código…"></textarea>' +
+        '<h3 style="margin:16px 0 6px;font-size:1rem">¿Ya tienes un código?</h3><textarea class="codigo" id="codigo-entrada" placeholder="Pega aquí tu código…"></textarea>' +
+        '<div class="fila-botones"><button class="boton secundario" data-accion="perfil-importar">Recuperar mis datos</button></div><p class="pista izq" id="aviso-perfil"></p></div>';
+  }
+  function avisoPerfil(t) { var el = document.getElementById('aviso-perfil'); if (el) el.textContent = t; }
+
   // ================================================================ ACCIONES (clics)
   var acciones = {
+    'tema': function () { PERFIL.siguienteTema(); },
+    'tema-elegir': function (el, valor) { PERFIL.ponerTema(valor); verPerfil(); },
+    'avatar': function (el) {
+      var fila = el.parentNode.querySelectorAll('.avatar');
+      for (var i = 0; i < fila.length; i++) fila[i].classList.toggle('sel', fila[i] === el);
+    },
+    'perfil-omitir': function () { try { sessionStorage.setItem('omitirBienvenida', '1'); } catch (e) { /* nada */ } A().inicio(); },
+    'perfil-crear': function () {
+      var inp = document.getElementById('nombre-nuevo'), n = (inp.value || '').trim();
+      if (!n) { inp.focus(); inp.placeholder = 'Escribe tu nombre para empezar'; return; }
+      PERFIL.establecer(n, avatarElegido(document.getElementById('bienvenida'), PERFIL.AVATARES[0]));
+      A().inicio();
+    },
+    'perfil-guardar': function () {
+      var n = (document.getElementById('perfil-editar-nombre').value || '').trim();
+      if (!n) { avisoPerfil('Escribe un nombre.'); return; }
+      PERFIL.renombrar(PERFIL.actual().id, n, avatarElegido(document.getElementById('panel-editar'), PERFIL.actual().e));
+      verPerfil();
+    },
+    'perfil-agregar': function () {
+      var inp = document.getElementById('nombre-otro'), n = (inp.value || '').trim();
+      if (!n) { inp.focus(); inp.placeholder = 'Escribe el nombre'; return; }
+      PERFIL.cambiar(PERFIL.agregar(n, avatarElegido(document.getElementById('panel-otra'), PERFIL.AVATARES[1])));
+    },
+    'perfil-usar': function (el) { PERFIL.cambiar(el.dataset.id); },
+    'perfil-borrar': function (el) {
+      var id = el.dataset.id, p = PERFIL.todos().filter(function (x) { return x.id === id; })[0], eraActual = PERFIL.actual().id === id;
+      if (!p || !window.confirm('¿Borrar el perfil de ' + (p.n || 'esta persona') + ' y todo lo que guardó? No se puede deshacer.')) return;
+      if (PERFIL.borrar(id)) { if (eraActual) { location.hash = '#/'; location.reload(); } else verPerfil(); }
+    },
+    'perfil-exportar': function () {
+      var codigo = PERFIL.exportar(), out = document.getElementById('codigo-salida');
+      out.value = codigo; out.focus(); out.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(codigo).then(function () { avisoPerfil('✅ Código copiado. Pégalo en tus notas o envíatelo por WhatsApp.'); }, function () { avisoPerfil('Seleccioné el código: cópialo a mano.'); });
+      else avisoPerfil('Seleccioné el código: cópialo a mano.');
+    },
+    'perfil-importar': function () {
+      var r = PERFIL.importar(document.getElementById('codigo-entrada').value);
+      if (!r.ok) { avisoPerfil('⚠️ ' + r.error); return; }
+      PERFIL.cambiar(r.id);
+    },
     'filtros-abrir': function () { f.abierto = !f.abierto; A().inicio(); },
     'filtros-limpiar': function () { f.tiempo = 0; f.dif = ''; f.dieta = ''; f.sin = []; f.equipo = []; A().inicio(); },
     'filtro': function (el) {
@@ -856,6 +944,9 @@ var EXTRAS = (function () {
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.id === 'nueva-compra') acciones['compras-agregar']();
+    if (e.key === 'Enter' && e.target.id === 'nombre-nuevo') acciones['perfil-crear']();
+    if (e.key === 'Enter' && e.target.id === 'nombre-otro') acciones['perfil-agregar']();
+    if (e.key === 'Enter' && e.target.id === 'perfil-editar-nombre') acciones['perfil-guardar']();
     if (e.key === 'Enter' && (e.target.id === 'tienda-nombre' || e.target.id === 'tienda-zona')) acciones['tienda-agregar']();
   });
 
@@ -871,7 +962,8 @@ var EXTRAS = (function () {
   }
 
   return {
-    vistas: { plan: verPlan, compras: verCompras, progreso: verProgreso, aprender: verAprender, sustituciones: verSustituciones },
+    vistas: { plan: verPlan, compras: verCompras, progreso: verProgreso, aprender: verAprender, sustituciones: verSustituciones, perfil: verPerfil },
+    bienvenidaHTML: bienvenidaHTML, agregarACompras: agregarACompras, etiquetas: etiquetas,
     acciones: acciones, inicioHTML: inicioHTML, pasaFiltros: pasaFiltros, interpretar: interpretar,
     recetaHTML: recetaHTML, finalHTML: finalHTML, miseHTML: miseHTML, vozHTML: vozHTML, alMostrarPaso: alMostrarPaso
   };

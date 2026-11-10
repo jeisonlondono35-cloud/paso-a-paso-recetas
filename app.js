@@ -10,19 +10,19 @@
   var memoria = {
     leer: function (clave, defecto) {
       try {
-        var v = localStorage.getItem(clave);
+        var v = localStorage.getItem(PERFIL.clave(clave));
         return v ? JSON.parse(v) : defecto;
       } catch (e) { return defecto; }
     },
     guardar: function (clave, valor) {
-      try { localStorage.setItem(clave, JSON.stringify(valor)); } catch (e) { /* sin almacenamiento */ }
+      try { localStorage.setItem(PERFIL.clave(clave), JSON.stringify(valor)); } catch (e) { /* sin almacenamiento */ }
     }
   };
 
   var favoritos = memoria.leer('favoritos', []);
   var porcionesElegidas = memoria.leer('porciones', {});
   var marcados = {}; // ingredientes tachados, por receta
-  var filtro = { texto: '', categoria: 'Todas' };
+  var filtro = { texto: '', categoria: 'Todas', momento: '' };
 
   // Color de cada categoría (tono de 0 a 360)
   var TONOS = { 'Básicos': 38, 'Desayunos': 46, 'Platos fuertes': 22, 'Acompañamientos': 56, 'Sopas': 62, 'Ensaladas': 74, 'Comida japonesa': 12, 'Cocina italiana': 28, 'Cocina española': 34, 'Cocina mexicana': 68, 'Cocina peruana': 18, 'Cocina argentina': 30, 'Cocina brasileña': 72, 'Cocina boliviana': 24, 'Cocina venezolana': 42, 'Sándwiches y arepas': 33, 'Pasabocas': 50, 'Postres': 15, 'Bebidas': 58 };
@@ -56,43 +56,60 @@
 
   function tono(r) { return 'style="--tono:' + (TONOS[r.categoria] != null ? TONOS[r.categoria] : 20) + '"'; }
 
-  // Ingredientes de "¿Qué tengo en la nevera?".
-  // k = palabra que se busca en los ingredientes de cada receta (sin tildes).
+  // ---------- Nevera y alacena ----------
+  // Cada ingrediente: id (lo que se guarda), nombre, emoji, estante y k = texto que se busca en las recetas (sin tildes).
+  var CATS_NEV = [['verduras', '🥬', 'Verduras'], ['frutas', '🍎', 'Frutas'], ['carnes', '🍗', 'Carnes y pescados'], ['lacteos', '🥛', 'Lácteos y huevos'], ['despensa', '🍚', 'Despensa'], ['salsas', '🫙', 'Salsas y condimentos']];
+  function I(id, n, e, c, k) { return { id: id, n: n, e: e, c: c, k: k || id }; }
   var NEVERA = [
-    { n: 'Huevos', e: '🥚', k: 'huevo' }, { n: 'Arroz', e: '🍚', k: 'arroz' },
-    { n: 'Tomate', e: '🍅', k: 'tomate' }, { n: 'Cebolla', e: '🧅', k: 'cebolla' },
-    { n: 'Ajo', e: '🧄', k: 'ajo' }, { n: 'Papa', e: '🥔', k: 'papa' },
-    { n: 'Zanahoria', e: '🥕', k: 'zanahoria' }, { n: 'Pollo', e: '🍗', k: 'pollo' },
-    { n: 'Carne molida', e: '🥩', k: 'carne molida' }, { n: 'Pescado', e: '🐟', k: 'pescado' },
-    { n: 'Pasta', e: '🍝', k: 'espagueti' }, { n: 'Lentejas', e: '🫘', k: 'lenteja' },
-    { n: 'Leche', e: '🥛', k: 'leche(?! de coco)' }, { n: 'Mantequilla', e: '🧈', k: 'mantequilla' },
-    { n: 'Queso', e: '🧀', k: 'queso' }, { n: 'Harina de trigo', e: '🌾', k: 'harina de trigo' },
-    { n: 'Harina para arepas', e: '🌽', k: 'harina de maiz' }, { n: 'Limón', e: '🍋', k: 'limon' },
-    { n: 'Aguacate', e: '🥑', k: 'aguacate' }, { n: 'Lechuga', e: '🥬', k: 'lechuga' },
-    { n: 'Pepino', e: '🥒', k: 'pepino' }, { n: 'Cilantro', e: '🌿', k: 'cilantro' },
-    { n: 'Banano', e: '🍌', k: 'banano' }, { n: 'Avena', e: '🥣', k: 'avena' },
-    { n: 'Chocolate', e: '🍫', k: 'chocolate' }, { n: 'Cerdo', e: '🐖', k: '(cerdo|chuleta)' },
-    { n: 'Carne de res', e: '🥩', k: '(de res|bistec)' }, { n: 'Camarones', e: '🍤', k: 'camaron' },
-    { n: 'Salmón', e: '🍣', k: 'salmon' }, { n: 'Champiñones', e: '🍄', k: 'champinon' },
-    { n: 'Crema de leche', e: '🥛', k: 'crema de leche' }, { n: 'Yogur', e: '🥣', k: 'yogur' },
-    { n: 'Pimentón', e: '🫑', k: 'pimenton(es)?( rojo| de colores| o verde|\\||$)' }, { n: 'Espinaca', e: '🥬', k: 'espinaca' },
-    { n: 'Brócoli', e: '🥦', k: 'brocoli' }, { n: 'Calabacín', e: '🥒', k: 'calabacin' },
-    { n: 'Naranja', e: '🍊', k: 'naranja' }, { n: 'Fresas', e: '🍓', k: 'fresa' },
-    { n: 'Mango', e: '🥭', k: 'mango' }, { n: 'Pan', e: '🍞', k: 'pan (de molde|grueso|rallado)' },
-    { n: 'Tortillas', e: '🌮', k: 'tortilla' }, { n: 'Atún', e: '🐟', k: 'atun' },
-    { n: 'Salsa de soya', e: '🥢', k: 'salsa de soya' }, { n: 'Leche de coco', e: '🥥', k: 'leche de coco' }
+    // Verduras
+    I('tomate', 'Tomate', '🍅', 'verduras'), I('cebolla', 'Cebolla', '🧅', 'verduras'), I('ajo', 'Ajo', '🧄', 'verduras', 'ajo(?!n)'),
+    I('papa', 'Papa', '🥔', 'verduras', 'papa(?!ya)'), I('zanahoria', 'Zanahoria', '🥕', 'verduras'), I('lechuga', 'Lechuga', '🥬', 'verduras'),
+    I('pepino', 'Pepino', '🥒', 'verduras'), I('cilantro', 'Cilantro', '🌿', 'verduras'), I('pimenton', 'Pimentón', '🫑', 'verduras', 'pimenton(?! dulce)'),
+    I('espinaca', 'Espinaca', '🥬', 'verduras'), I('brocoli', 'Brócoli', '🥦', 'verduras'), I('calabacin', 'Calabacín', '🥒', 'verduras'),
+    I('coliflor', 'Coliflor', '🥦', 'verduras'), I('berenjena', 'Berenjena', '🍆', 'verduras'), I('ahuyama', 'Ahuyama', '🎃', 'verduras'),
+    I('maiz-tierno', 'Maíz tierno', '🌽', 'verduras', '(maiz tierno|mazorca)'), I('champinon', 'Champiñones', '🍄', 'verduras'),
+    I('platano', 'Plátano', '🍌', 'verduras'), I('yuca', 'Yuca', '🍠', 'verduras'), I('batata', 'Batata', '🍠', 'verduras'),
+    I('repollo', 'Repollo', '🥬', 'verduras'), I('apio', 'Apio', '🌱', 'verduras'), I('remolacha', 'Remolacha', '🟣', 'verduras'),
+    I('habichuela', 'Habichuela y arveja', '🫛', 'verduras', '(habichuela|arveja)'), I('cebolla-larga', 'Cebolla larga', '🌱', 'verduras', '(cebolla larga|cebollin)'),
+    I('perejil', 'Perejil', '🌿', 'verduras'), I('albahaca', 'Albahaca', '🌿', 'verduras'), I('jengibre', 'Jengibre', '🫚', 'verduras'),
+    // Frutas
+    I('limon', 'Limón', '🍋', 'frutas'), I('naranja', 'Naranja', '🍊', 'frutas'), I('aguacate', 'Aguacate', '🥑', 'frutas'),
+    I('banano', 'Banano', '🍌', 'frutas'), I('mango', 'Mango', '🥭', 'frutas'), I('fresa', 'Fresas', '🍓', 'frutas'),
+    I('pina', 'Piña', '🍍', 'frutas'), I('manzana', 'Manzana', '🍎', 'frutas'), I('mora', 'Mora', '🫐', 'frutas', 'mora\\b'),
+    I('maracuya', 'Maracuyá', '🟡', 'frutas'), I('uva', 'Uvas', '🍇', 'frutas'), I('pera', 'Pera', '🍐', 'frutas', 'pera\\b'), I('lulo', 'Lulo', '🍊', 'frutas'),
+    // Carnes y pescados
+    I('pollo', 'Pollo', '🍗', 'carnes', '(pollo|pechuga|muslo|contramuslo|alita)'), I('carne molida', 'Carne molida', '🥩', 'carnes'),
+    I('(de res|bistec)', 'Carne de res', '🥩', 'carnes', '(de res|bistec|falda|lomo de res)'), I('(cerdo|chuleta)', 'Cerdo', '🐖', 'carnes', '(cerdo|chuleta|lomo de cerdo)'),
+    I('tocineta', 'Tocineta', '🥓', 'carnes', '(tocineta|panceta)'), I('jamon', 'Jamón', '🍖', 'carnes'), I('chorizo', 'Chorizo y salchicha', '🌭', 'carnes', '(chorizo|salchicha)'),
+    I('pescado', 'Pescado', '🐟', 'carnes'), I('salmon', 'Salmón', '🍣', 'carnes'), I('atun', 'Atún', '🥫', 'carnes'), I('camaron', 'Camarones', '🍤', 'carnes'),
+    // Lácteos y huevos
+    I('huevo', 'Huevos', '🥚', 'lacteos'), I('leche(?! de coco)', 'Leche', '🥛', 'lacteos'), I('mantequilla', 'Mantequilla', '🧈', 'lacteos', 'mantequilla(?! de mani)'),
+    I('queso', 'Queso', '🧀', 'lacteos'), I('crema de leche', 'Crema de leche', '🥛', 'lacteos'), I('yogur', 'Yogur', '🥣', 'lacteos'),
+    // Despensa
+    I('arroz', 'Arroz', '🍚', 'despensa'), I('espagueti', 'Pasta', '🍝', 'despensa', '(espagueti|macarron|fettuccine|codito|conchita|tornillo|monito|fideo|pasta corta|de pasta)'),
+    I('lenteja', 'Lentejas', '🫘', 'despensa'), I('frijol', 'Fríjol y caraota', '🫘', 'despensa', '(frijol|caraota)'), I('garbanzo', 'Garbanzos', '🫘', 'despensa'),
+    I('harina de trigo', 'Harina de trigo', '🌾', 'despensa'), I('harina de maiz', 'Harina de maíz', '🌽', 'despensa'), I('avena', 'Avena', '🥣', 'despensa'),
+    I('pan (de molde|grueso|rallado)', 'Pan', '🍞', 'despensa', '(pan de molde|pan grueso|pan rallado|baguette|panko)'), I('tortilla', 'Tortillas', '🌮', 'despensa'),
+    I('panela', 'Panela', '🟤', 'despensa', '(panela|papelon)'), I('chocolate', 'Chocolate', '🍫', 'despensa'), I('cocoa', 'Cocoa', '🍫', 'despensa'),
+    I('nueces', 'Maní y nueces', '🥜', 'despensa', '(nuez|nueces|mani\\b)'), I('alga', 'Alga nori', '🍙', 'despensa', 'alga nori'), I('leche de coco', 'Leche de coco', '🥥', 'despensa'),
+    // Salsas y condimentos
+    I('salsa de soya', 'Salsa de soya', '🥢', 'salsas'), I('vinagre', 'Vinagre', '🫙', 'salsas'), I('mostaza', 'Mostaza', '🟡', 'salsas'),
+    I('mayonesa', 'Mayonesa', '🫙', 'salsas'), I('salsa-tomate', 'Salsa de tomate', '🍅', 'salsas', '(salsa de tomate|ketchup)'), I('tomate triturado', 'Tomate triturado', '🥫', 'salsas'),
+    I('aceite de oliva', 'Aceite de oliva', '🫒', 'salsas'), I('comino', 'Comino', '🌰', 'salsas'), I('paprika', 'Paprika', '🌶️', 'salsas'),
+    I('oregano', 'Orégano', '🌿', 'salsas'), I('canela', 'Canela', '🟫', 'salsas'), I('curry', 'Curry', '🍛', 'salsas'), I('miso', 'Miso', '🍲', 'salsas'),
+    I('vino', 'Vino', '🍷', 'salsas'), I('aji', 'Ají', '🌶️', 'salsas', 'aji\\b')
   ];
-  var enNevera = memoria.leer('nevera', []);
+  var NEV_POR_ID = {};
+  NEVERA.forEach(function (it) { it.re = new RegExp('\\b(?:' + it.k + ')'); NEV_POR_ID[it.id] = it; });
+  var enNevera = memoria.leer('nevera', []).filter(function (id) { return NEV_POR_ID[id]; });
 
-  // Qué ingredientes de la lista NEVERA necesita una receta (sin contar los opcionales)
+  // Qué ingredientes de la nevera necesita una receta (sin contar los opcionales)
   function necesita(r) {
     if (r._pide) return r._pide;
     var texto = r.ingredientes.filter(function (i) {
       return i.c != null && !/^Opcional/.test(i.nota || '');
     }).map(function (i) { return sinTildes(i.n); }).join(' | ');
-    r._pide = NEVERA.filter(function (item) {
-      return new RegExp('\\b' + item.k).test(texto);
-    });
+    r._pide = NEVERA.filter(function (item) { return item.re.test(texto); });
     return r._pide;
   }
 
@@ -154,6 +171,158 @@
 
   function corazon(id) { return favoritos.indexOf(id) >= 0 ? '❤️' : '🤍'; }
 
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  // ---------- Búsqueda fácil ----------
+  // Momentos del día: un toque y ya está filtrado
+  var MOMENTOS = [
+    ['desayuno', '🍳', 'Desayuno', function (r) { return r.categoria === 'Desayunos' || r.categoria === 'Sándwiches y arepas'; }],
+    ['almuerzo', '🍛', 'Almuerzo', function (r) { return /Platos fuertes|Sopas|Acompañamientos|Comida japonesa|Cocina /.test(r.categoria); }],
+    ['cena', '🌙', 'Cena ligera', function (r) { return /Sopas|Ensaladas|Sándwiches y arepas|Pasabocas/.test(r.categoria) || (/Platos fuertes|Comida japonesa|Cocina /.test(r.categoria) && r.prep + r.coccion <= 30); }],
+    ['postre', '🍰', 'Postre', function (r) { return r.categoria === 'Postres'; }],
+    ['bebida', '🥤', 'Bebida', function (r) { return r.categoria === 'Bebidas'; }],
+    ['rapido', '⚡', 'Rápido', function (r) { return r.prep + r.coccion <= 30; }],
+    ['facil', '👍', 'Fácil', function (r) { return r.dificultad === 'Fácil'; }],
+    ['veg', '🥬', 'Vegetariano', function (r) { return EXTRAS.etiquetas(r).veg; }],
+    ['sinhorno', '🚫', 'Sin horno', function (r) { return !EXTRAS.etiquetas(r).horno; }]
+  ];
+  var Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function indice(r) {
+    if (!r._i) {
+      var nom = sinTildes(r.nombre);
+      r._i = {
+        nombre: nom, palabras: nom.split(/[^a-z0-9]+/).filter(Boolean),
+        ing: sinTildes(r.ingredientes.map(function (i) { return i.n.split('|')[0]; }).join(' ')), cat: sinTildes(r.categoria)
+      };
+    }
+    return r._i;
+  }
+  // 0 = no coincide. Más puntos si la palabra empieza igual que una del nombre.
+  function puntaje(r, tokens, soloNombre) {
+    var ix = indice(r), total = 0;
+    for (var k = 0; k < tokens.length; k++) {
+      var t = tokens[k], s = 0;
+      if (ix.palabras.some(function (w) { return w.indexOf(t) === 0; })) s = 5;
+      else if (ix.nombre.indexOf(t) >= 0) s = 4;
+      else if (!soloNombre && (ix.ing.indexOf(t) >= 0 || ix.cat.indexOf(t) >= 0)) s = 1;
+      if (!s) return 0;
+      total += s;
+    }
+    return total;
+  }
+
+  // Corrección de errores de escritura: "polo con aroz" -> "pollo con arroz"
+  var vocab = null;
+  function construirVocab() {
+    vocab = {};
+    RECETAS.forEach(function (r) {
+      var ix = indice(r);
+      (ix.nombre + ' ' + ix.ing).split(/[^a-z0-9]+/).forEach(function (w) { if (w.length > 2) vocab[w] = (vocab[w] || 0) + 1; });
+    });
+  }
+  function distancia(a, b) {
+    var prev = [], cur = [], i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1));
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function corregirPalabra(w) {
+    if (w.length < 4 || vocab[w]) return null;
+    var max = w.length > 6 ? 2 : 1, mejor = null, md = 99;
+    for (var k in vocab) {
+      if (Math.abs(k.length - w.length) > max) continue;
+      var d = distancia(w, k);
+      if (d <= max && (d < md || (d === md && vocab[k] > vocab[mejor]))) { md = d; mejor = k; }
+    }
+    return mejor;
+  }
+  function sugerirCorreccion(tokens) {
+    if (!vocab) construirVocab();
+    var cambio = false, nuevos = tokens.map(function (t) {
+      var c = corregirPalabra(t);
+      if (c) { cambio = true; return c; }
+      return t;
+    });
+    return cambio ? nuevos.join(' ') : '';
+  }
+
+  function guardarReciente(t) {
+    t = String(t || '').trim();
+    if (t.length < 2) return;
+    var l = memoria.leer('recientes', []).filter(function (x) { return x !== t; });
+    l.unshift(t);
+    memoria.guardar('recientes', l.slice(0, 6));
+  }
+  function pintarRecientes() {
+    var el = document.getElementById('recientes');
+    if (!el) return;
+    var l = memoria.leer('recientes', []);
+    el.innerHTML = (!filtro.texto && l.length) ? 'Buscaste: ' + l.map(function (t) { return '<button class="chip" data-accion="reciente" data-valor="' + esc(t) + '">' + esc(t) + '</button>'; }).join('') : '';
+  }
+  function ponerTexto(t) {
+    filtro.texto = t; visibles = POR_PAGINA;
+    var inp = document.getElementById('buscador');
+    if (inp) inp.value = t;
+    pintarRejilla(); pintarSugerencias(); pintarRecientes();
+  }
+  function buscarPorVoz(btn) {
+    if (!Rec) return;
+    var r = new Rec();
+    r.lang = 'es-CO'; r.interimResults = false;
+    r.onresult = function (ev) { var t = ev.results[0][0].transcript.replace(/[.,;]+$/, ''); ponerTexto(t); guardarReciente(t); };
+    r.onend = function () { if (btn) btn.classList.remove('activo'); };
+    r.onerror = function () { if (btn) btn.classList.remove('activo'); };
+    if (btn) btn.classList.add('activo');
+    try { r.start(); } catch (e) { if (btn) btn.classList.remove('activo'); }
+  }
+
+  function ocultarSugerencias() { var c = document.getElementById('sugerencias'); if (c) c.hidden = true; }
+  function pintarSugerencias() {
+    var caja = document.getElementById('sugerencias'), inp = document.getElementById('buscador'), borrar = document.getElementById('btn-borrar');
+    if (borrar) borrar.hidden = !filtro.texto;
+    if (!caja) return;
+    var q = sinTildes(filtro.texto.trim());
+    if (q.length < 2 || document.activeElement !== inp) { caja.hidden = true; return; }
+    var pista = EXTRAS.interpretar(q), tokens = pista.palabras;
+    if (!tokens.length) { caja.hidden = true; return; }
+    var sug = [];
+    RECETAS.forEach(function (r) {
+      if (!pista.pasa(r)) return;
+      var s = puntaje(r, tokens, true);
+      if (s) sug.push({ r: r, s: s });
+    });
+    sug.sort(function (a, b) { return b.s - a.s; });
+    sug = sug.slice(0, 6);
+    if (!sug.length) { caja.hidden = true; return; }
+    caja.innerHTML = sug.map(function (x) {
+      return '<a href="#/receta/' + x.r.id + '" data-sug="1"><span>' + x.r.emoji + '</span> ' + esc(x.r.nombre) + '<small>' + esc(x.r.categoria) + '</small></a>';
+    }).join('');
+    caja.hidden = false;
+  }
+  function teclasBuscador(e) {
+    var caja = document.getElementById('sugerencias'), links = caja ? caja.querySelectorAll('a') : [], sel = -1, i;
+    for (i = 0; i < links.length; i++) if (links[i].classList.contains('sel')) sel = i;
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && links.length && !caja.hidden) {
+      e.preventDefault();
+      if (sel >= 0) links[sel].classList.remove('sel');
+      sel = e.key === 'ArrowDown' ? (sel + 1) % links.length : (sel <= 0 ? links.length - 1 : sel - 1);
+      links[sel].classList.add('sel');
+    } else if (e.key === 'Enter') {
+      guardarReciente(filtro.texto);
+      if (sel >= 0 && !caja.hidden) { location.hash = links[sel].getAttribute('href'); return; }
+      ocultarSugerencias(); e.target.blur();
+      var r = document.getElementById('rejilla');
+      if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (e.key === 'Escape') {
+      ocultarSugerencias();
+    }
+  }
+
   // ---------- Pantalla: inicio ----------
   function verInicio() {
     var categorias = ['Todas', 'Favoritas'];
@@ -166,12 +335,24 @@
         '<img class="logo" src="logo.png" alt="Logo de Paso a Paso: un halcón con gorro de chef" width="150" height="150">' +
         '<h1>Paso <span>a</span> Paso</h1>' +
         '<p>' + RECETAS.length + ' recetas explicadas con todo detalle: qué hacer, cómo se ve cuando va bien y qué errores evitar.</p>' +
-        '<div class="acciones">' +
-          '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Marca lo que tienes y te digo qué puedes cocinar</small></div></a>' +
-          '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
-        '</div>' +
       '</header>' +
-      '<input class="buscador" id="buscador" type="search" placeholder="🔍 Busca: «algo rápido con pollo y arroz», «postre sin horno»…" value="' + filtro.texto.replace(/"/g, '&quot;') + '">' +
+      EXTRAS.bienvenidaHTML() +
+      '<div class="acciones">' +
+        '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Llénala y te digo qué puedes cocinar</small></div></a>' +
+        '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
+      '</div>' +
+      '<div class="buscar">' +
+        '<input class="buscador" id="buscador" type="search" autocomplete="off" enterkeyhint="search" aria-label="Buscar recetas" placeholder="🔍 ¿Qué quieres cocinar hoy?" value="' + esc(filtro.texto) + '">' +
+        '<div class="buscar-btns">' + (Rec ? '<button type="button" data-accion="buscar-voz" aria-label="Buscar con la voz" title="Buscar con la voz">🎤</button>' : '') +
+          '<button type="button" id="btn-borrar" data-accion="buscar-borrar" aria-label="Borrar búsqueda"' + (filtro.texto ? '' : ' hidden') + '>✕</button></div>' +
+        '<div class="sugerencias" id="sugerencias" hidden></div>' +
+      '</div>' +
+      '<div class="recientes" id="recientes"></div>' +
+      '<div class="momentos" role="group" aria-label="¿Qué se te antoja?">' +
+        MOMENTOS.map(function (m) {
+          return '<button type="button" class="momento' + (filtro.momento === m[0] ? ' activo' : '') + '" data-accion="momento" data-valor="' + m[0] + '"><span>' + m[1] + '</span><small>' + m[2] + '</small></button>';
+        }).join('') +
+      '</div>' +
       EXTRAS.inicioHTML() +
       '<div class="filtros">' +
         categorias.map(function (c) {
@@ -180,36 +361,47 @@
       '</div>' +
       '<div class="rejilla" id="rejilla"></div><div id="pie-rejilla"></div>';
 
-    document.getElementById('buscador').addEventListener('input', function (e) {
-      filtro.texto = e.target.value;
-      visibles = POR_PAGINA;
-      pintarRejilla();
-    });
+    var inp = document.getElementById('buscador');
+    inp.addEventListener('input', function (e) { filtro.texto = e.target.value; visibles = POR_PAGINA; pintarRejilla(); pintarSugerencias(); pintarRecientes(); });
+    inp.addEventListener('focus', pintarSugerencias);
+    inp.addEventListener('blur', function () { setTimeout(ocultarSugerencias, 220); });
+    inp.addEventListener('keydown', teclasBuscador);
+    document.getElementById('sugerencias').addEventListener('mousedown', function (e) { e.preventDefault(); });
+    pintarRecientes();
     pintarRejilla();
   }
 
   function pintarRejilla() {
     var q = sinTildes(filtro.texto.trim());
     var pista = EXTRAS.interpretar(q); // entiende frases como "rápido", "sin horno", "para llevar"
-    var lista = RECETAS.filter(function (r) {
-      if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
-      if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
-      if (!EXTRAS.pasaFiltros(r) || !pista.pasa(r)) return false;
-      if (!pista.palabras.length) return true;
-      if (!r._busca) r._busca = sinTildes(r.nombre + ' ' + r.categoria + ' ' + r.ingredientes.map(function (i) { return i.n; }).join(' '));
-      return pista.palabras.every(function (palabra) { return r._busca.indexOf(palabra) >= 0; });
+    var tokens = pista.palabras;
+    var mom = filtro.momento ? MOMENTOS.filter(function (m) { return m[0] === filtro.momento; })[0] : null;
+    var lista = [];
+    RECETAS.forEach(function (r) {
+      if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return;
+      if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return;
+      if (mom && !mom[3](r)) return;
+      if (!EXTRAS.pasaFiltros(r) || !pista.pasa(r)) return;
+      var s = tokens.length ? puntaje(r, tokens, false) : 1;
+      if (s) lista.push({ r: r, s: s });
     });
+    if (tokens.length) {
+      lista.sort(function (a, b) { return b.s - a.s; }); // lo que más se parece primero
+    } else if (filtro.categoria === 'Todas' && !mom) {
+      // En la portada general, primero las recetas con foto propia
+      lista = lista.filter(function (x) { return !x.r.gen; }).concat(lista.filter(function (x) { return x.r.gen; }));
+    }
+    lista = lista.map(function (x) { return x.r; });
+
     var entendido = document.getElementById('entendido');
     if (entendido) entendido.innerHTML = pista.etiquetas.length ? 'Entendí: ' + pista.etiquetas.map(function (t) { return '<span>' + t + '</span>'; }).join('') : '';
 
-    // En la portada general, primero las recetas con foto
-    if (filtro.categoria === 'Todas' && !q) {
-      lista = lista.filter(function (r) { return !r.gen; }).concat(lista.filter(function (r) { return r.gen; }));
-    }
-
     var rejilla = document.getElementById('rejilla'), pie = document.getElementById('pie-rejilla');
+    if (!rejilla) return;
     if (!lista.length) {
-      rejilla.innerHTML = '<p class="vacio">No encontré recetas con esa búsqueda y esos filtros. Prueba con menos palabras o quita algún filtro.</p>';
+      var corr = tokens.length ? sugerirCorreccion(tokens) : '';
+      rejilla.innerHTML = '<p class="vacio">No encontré recetas con esa búsqueda y esos filtros. Prueba con menos palabras o quita algún filtro.</p>' +
+        (corr ? '<div class="dijiste">¿Quisiste decir <button type="button" data-accion="dijiste" data-valor="' + esc(corr) + '">' + esc(corr) + '</button>?</div>' : '');
       pie.innerHTML = '';
       return;
     }
@@ -227,62 +419,105 @@
       '</a>';
   }
 
-  // ---------- Pantalla: ¿qué tengo en la nevera? ----------
+  // ---------- Pantalla: mi nevera y mi alacena ----------
+  var nevCat = 'verduras', nevFiltro = '', nevVisibles = 12, nevBusqueda = '', ultimoAgregado = '', nevAbierta = false;
+  var ESTANTE_FRIA = /verduras|frutas|carnes|lacteos/;
+
   function verNevera() {
+    nevAbierta = false; nevVisibles = 12; ultimoAgregado = ''; nevBusqueda = '';
     app.innerHTML =
       '<a class="volver" href="#/">← Todas las recetas</a>' +
-      '<div class="panel">' +
-        '<h2>🧊 ¿Qué tengo en la nevera?</h2>' +
-        '<p class="suave">Toca los ingredientes que tienes en casa. La sal, el aceite, el azúcar y el agua ya los doy por hechos.</p>' +
-        '<div class="filtros" id="nevera-chips"></div>' +
-        '<button class="boton secundario" data-accion="nevera-limpiar">Vaciar la nevera</button>' +
+      '<div class="panel"><h2>🧊 Mi nevera y mi alacena</h2>' +
+        '<p class="suave" style="margin:0">Toca lo que tienes en casa y mira cómo se llena. Abajo te digo qué puedes cocinar y qué te falta. La sal, el aceite, el azúcar y el agua ya los doy por hechos.</p></div>' +
+      '<div class="nev-layout">' +
+        '<div class="nev-visual" id="nev-visual"></div>' +
+        '<div class="panel">' +
+          '<input class="buscador" id="nev-buscar" type="search" autocomplete="off" placeholder="🔍 Busca un ingrediente: pollo, arroz, ajo…" aria-label="Buscar ingrediente">' +
+          '<div class="nev-pestanas" id="nev-pestanas"></div>' +
+          '<div class="nev-grid" id="nev-grid"></div>' +
+          '<div class="nev-acciones"><button class="chip" data-accion="nevera-basico">✨ Lo básico de casa</button><button class="chip" data-accion="nevera-limpiar">Vaciar todo</button></div>' +
+        '</div>' +
       '</div>' +
       '<div id="nevera-resultado"></div>';
+    document.getElementById('nev-buscar').addEventListener('input', function (e) { nevBusqueda = e.target.value; pintarPicker(); });
     pintarNevera();
   }
 
   function pintarNevera() {
-    document.getElementById('nevera-chips').innerHTML = NEVERA.map(function (item) {
-      var activo = enNevera.indexOf(item.k) >= 0;
-      return '<button class="chip grande' + (activo ? ' activo' : '') + '" data-accion="nevera" data-valor="' + item.k + '">' + item.e + ' ' + item.n + '</button>';
+    pintarVisual();
+    pintarPicker();
+    pintarResultadosNevera();
+  }
+
+  function estanteHTML(titulo, cats) {
+    var items = enNevera.map(function (id) { return NEV_POR_ID[id]; }).filter(function (it) { return it && cats.indexOf(it.c) >= 0; });
+    return '<div class="estante"><b>' + titulo + '</b>' + (items.length ? items.map(function (it) {
+      return '<button type="button" class="cosa' + (it.id === ultimoAgregado ? ' nuevo' : '') + '" data-accion="nevera" data-valor="' + esc(it.id) + '" title="' + esc(it.n) + ' (toca para sacarlo)" aria-label="Sacar ' + esc(it.n) + '">' + it.e + '</button>';
+    }).join('') : '<span class="vacio-est">vacío</span>') + '</div>';
+  }
+
+  function pintarVisual() {
+    var el = document.getElementById('nev-visual');
+    if (!el) return;
+    var n = enNevera.length, fria = enNevera.filter(function (id) { return ESTANTE_FRIA.test(NEV_POR_ID[id].c); }).length, abre = nevAbierta ? '' : ' abre';
+    nevAbierta = true;
+    el.innerHTML =
+      '<div class="nev-caja' + abre + '"><div class="manija"></div><div class="nev-top"><span>🧊 Nevera</span><span>' + fria + '</span></div>' +
+        estanteHTML('Lácteos y huevos', ['lacteos']) + estanteHTML('Carnes y pescados', ['carnes']) + estanteHTML('Cajón de verduras y frutas', ['verduras', 'frutas']) + '</div>' +
+      '<div class="nev-caja alacena' + abre + '"><div class="manija"></div><div class="nev-top"><span>🗄️ Alacena</span><span>' + (n - fria) + '</span></div>' +
+        estanteHTML('Despensa', ['despensa']) + estanteHTML('Salsas y condimentos', ['salsas']) + '</div>' +
+      '<p class="nev-resumen">' + (n ? 'Tienes ' + n + (n === 1 ? ' ingrediente' : ' ingredientes') + '. Toca cualquiera para sacarlo.' : 'Está vacía: toca los ingredientes de abajo para llenarla 👇') + '</p>';
+  }
+
+  function pintarPicker() {
+    var tabs = document.getElementById('nev-pestanas'), grid = document.getElementById('nev-grid');
+    if (!tabs || !grid) return;
+    var q = sinTildes(nevBusqueda.trim());
+    tabs.innerHTML = CATS_NEV.map(function (c) {
+      var cuenta = enNevera.filter(function (id) { return NEV_POR_ID[id].c === c[0]; }).length;
+      return '<button type="button" class="nev-pestana' + (c[0] === nevCat && !q ? ' activo' : '') + '" data-accion="nevera-cat" data-valor="' + c[0] + '">' + c[1] + ' ' + c[2] + (cuenta ? '<i>' + cuenta + '</i>' : '') + '</button>';
     }).join('');
+    var lista = NEVERA.filter(function (it) { return q ? sinTildes(it.n).indexOf(q) >= 0 : it.c === nevCat; });
+    grid.innerHTML = lista.length ? lista.map(function (it) {
+      var on = enNevera.indexOf(it.id) >= 0;
+      return '<button type="button" class="ing' + (on ? ' activo' : '') + '" aria-pressed="' + on + '" data-accion="nevera" data-valor="' + esc(it.id) + '"><span class="em">' + it.e + '</span><small>' + esc(it.n) + '</small></button>';
+    }).join('') : '<p class="vacio" style="grid-column:1/-1">No tengo ese ingrediente en la lista. Prueba con otra palabra.</p>';
+  }
 
+  function pintarResultadosNevera() {
     var caja = document.getElementById('nevera-resultado');
-    if (!enNevera.length) {
-      caja.innerHTML = '<p class="vacio">👆 Marca al menos un ingrediente para ver qué puedes preparar.</p>';
-      return;
-    }
-
-    var opciones = RECETAS.map(function (r) {
+    if (!caja) return;
+    if (!enNevera.length) { caja.innerHTML = '<p class="vacio">👆 Toca lo que tienes en casa y te digo qué puedes cocinar.</p>'; return; }
+    var tengo = {};
+    enNevera.forEach(function (id) { tengo[id] = 1; });
+    var ops = [];
+    RECETAS.forEach(function (r) {
       var pide = necesita(r);
-      var faltan = pide.filter(function (item) { return enNevera.indexOf(item.k) < 0; });
-      return { r: r, pide: pide.length, tiene: pide.length - faltan.length, faltan: faltan };
-    }).filter(function (o) { return o.tiene > 0; });
-
-    opciones.sort(function (a, b) {
-      return a.faltan.length - b.faltan.length || b.tiene - a.tiene;
+      if (!pide.length) return;
+      var faltan = pide.filter(function (it) { return !tengo[it.id]; }), tiene = pide.length - faltan.length;
+      if (tiene > 0) ops.push({ r: r, pide: pide.length, tiene: tiene, faltan: faltan });
     });
-    var listasTotal = opciones.filter(function (o) { return !o.faltan.length; }).length;
-    opciones = opciones.slice(0, Math.max(30, Math.min(listasTotal, 60)));
+    var g0 = ops.filter(function (o) { return !o.faltan.length; }), g1 = ops.filter(function (o) { return o.faltan.length === 1; }), g2 = ops.filter(function (o) { return o.faltan.length === 2; });
+    var f = nevFiltro || (g0.length ? 'todo' : (g1.length ? 'una' : 'dos'));
+    var lista = f === 'todo' ? g0 : (f === 'una' ? g1 : g2);
+    lista.sort(function (a, b) { return (b.tiene - a.tiene) || ((a.r.gen ? 1 : 0) - (b.r.gen ? 1 : 0)); }); // las que usan más de lo que tienes, primero
 
-    if (!opciones.length) {
-      caja.innerHTML = '<p class="vacio">Con eso solo no me alcanza para ninguna receta. Marca algo más.</p>';
-      return;
-    }
+    var titulo = f === 'todo'
+      ? (g0.length ? '🎉 Puedes cocinar ' + g0.length + (g0.length === 1 ? ' receta' : ' recetas') + ' ya mismo' : 'Todavía no tienes todo para ninguna receta')
+      : (f === 'una' ? 'Te falta solo 1 ingrediente para estas' : 'Te faltan 2 ingredientes para estas');
+    function pill(id, texto, n) { return '<button type="button" class="chip grande' + (f === id ? ' activo' : '') + '" data-accion="nevera-filtro" data-valor="' + id + '">' + texto + ' (' + n + ')</button>'; }
 
-    var listas = listasTotal;
-    caja.innerHTML =
-      '<h2 class="titulo-seccion">' + (listas
-        ? '🎉 Puedes preparar ' + listas + (listas === 1 ? ' receta' : ' recetas') + ' ya mismo'
-        : 'Estás cerca de estas recetas') + '</h2>' +
-      '<div class="rejilla">' + opciones.map(function (o, i) {
+    caja.innerHTML = '<h2 class="titulo-seccion">' + titulo + '</h2>' +
+      '<div class="filtros">' + pill('todo', '✅ Listas', g0.length) + pill('una', 'Falta 1', g1.length) + pill('dos', 'Faltan 2', g2.length) + '</div>' +
+      (lista.length ? '<div class="rejilla">' + lista.slice(0, nevVisibles).map(function (o, i) {
         var pct = Math.round(o.tiene / o.pide * 100);
-        var extra = '<div class="barra-nevera"><div style="width:' + pct + '%"></div></div>' +
-          (o.faltan.length
-            ? '<p class="falta">Te falta: ' + o.faltan.map(function (f) { return f.e + ' ' + f.n.toLowerCase(); }).join(', ') + '</p>'
-            : '<p class="completa">✅ ¡Tienes todo lo principal!</p>');
+        var extra = '<div class="barra-nevera"><div style="width:' + pct + '%"></div></div>' + (o.faltan.length
+          ? '<p class="falta">Te falta: ' + o.faltan.map(function (it) { return '<button type="button" class="falta-chip" data-accion="nevera-falta" data-valor="' + esc(it.id) + '" title="Toca si ya lo tienes">' + it.e + ' ' + esc(it.n.toLowerCase()) + '</button>'; }).join('') +
+            '</p><div class="acciones-card"><button type="button" class="chip" data-accion="nevera-lista" data-id="' + o.r.id + '">🛒 Agregar lo que falta a mi lista</button></div>'
+          : '<p class="completa">✅ ¡Tienes todo lo principal!</p>');
         return tarjetaHTML(o.r, i, extra);
-      }).join('') + '</div>';
+      }).join('') + '</div>' + (lista.length > nevVisibles ? '<div style="margin-top:16px"><button class="boton grande" data-accion="nevera-mas">Ver más recetas ↓</button></div>' : '')
+        : '<p class="vacio">No hay recetas en este grupo todavía. Agrega más ingredientes a tu nevera.</p>');
   }
 
   // ---------- Pantalla: hojear el libro (una receta por página doble) ----------
@@ -527,18 +762,62 @@
       else el.textContent = corazon(valor);
     } else if (accion === 'nevera') {
       var lugar = enNevera.indexOf(valor);
-      if (lugar >= 0) enNevera.splice(lugar, 1); else enNevera.push(valor);
+      if (lugar >= 0) { enNevera.splice(lugar, 1); ultimoAgregado = ''; } else { enNevera.push(valor); ultimoAgregado = valor; }
       memoria.guardar('nevera', enNevera);
+      nevVisibles = 12;
       pintarNevera();
     } else if (accion === 'nevera-limpiar') {
-      enNevera = [];
+      enNevera = []; ultimoAgregado = '';
       memoria.guardar('nevera', enNevera);
       pintarNevera();
+    } else if (accion === 'nevera-basico') {
+      ['Huevos', 'Arroz', 'Cebolla', 'Tomate', 'Papa', 'Ajo', 'Leche'].forEach(function (nom) {
+        NEVERA.forEach(function (it) { if (it.n === nom && enNevera.indexOf(it.id) < 0) enNevera.push(it.id); });
+      });
+      ultimoAgregado = '';
+      memoria.guardar('nevera', enNevera);
+      pintarNevera();
+    } else if (accion === 'nevera-cat') {
+      nevCat = valor; nevBusqueda = '';
+      var caja = document.getElementById('nev-buscar'); if (caja) caja.value = '';
+      pintarPicker();
+    } else if (accion === 'nevera-filtro') {
+      nevFiltro = valor; nevVisibles = 12;
+      pintarResultadosNevera();
+    } else if (accion === 'nevera-mas') {
+      nevVisibles += 12;
+      pintarResultadosNevera();
+    } else if (accion === 'nevera-falta') {
+      e.preventDefault();
+      if (NEV_POR_ID[valor] && enNevera.indexOf(valor) < 0) { enNevera.push(valor); ultimoAgregado = valor; memoria.guardar('nevera', enNevera); pintarNevera(); }
+    } else if (accion === 'nevera-lista') {
+      e.preventDefault();
+      var rec = buscarReceta(el.dataset.id), tengoIds = {};
+      enNevera.forEach(function (id) { tengoIds[id] = 1; });
+      if (rec) {
+        var nombres = necesita(rec).filter(function (it) { return !tengoIds[it.id]; }).map(function (it) { return it.n; });
+        EXTRAS.agregarACompras(nombres.join(', '));
+        el.textContent = '✅ Agregado a tu lista del mercado';
+        el.disabled = true;
+      }
+    } else if (accion === 'momento') {
+      filtro.momento = filtro.momento === valor ? '' : valor;
+      visibles = POR_PAGINA;
+      document.querySelectorAll('.momento').forEach(function (b) { b.classList.toggle('activo', b.dataset.valor === filtro.momento); });
+      pintarRejilla();
+    } else if (accion === 'reciente' || accion === 'dijiste') {
+      ponerTexto(valor); guardarReciente(valor);
+    } else if (accion === 'buscar-borrar') {
+      ponerTexto('');
+      var campo = document.getElementById('buscador'); if (campo) campo.focus();
+    } else if (accion === 'buscar-voz') {
+      buscarPorVoz(el);
     } else if (accion === 'mas') {
       visibles += POR_PAGINA;
       pintarRejilla();
     } else if (accion === 'categoria') {
       filtro.categoria = valor;
+      filtro.momento = '';
       visibles = POR_PAGINA;
       verInicio();
     } else if (accion === 'porciones' && ruta.receta) {
