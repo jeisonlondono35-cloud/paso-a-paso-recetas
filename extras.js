@@ -340,11 +340,58 @@ var EXTRAS = (function () {
     });
     mem.guardar('plan', plan);
   }
+  // ================================================================ MERCADO: lista, tiendas, precios y tiquete
+  // La app NO trae precios: aprende los que tú anotas (o los que salen de un tiquete que confirmas).
+  var ciudad = mem.leer('ciudad', 'Zipaquirá'), tiendas = mem.leer('tiendas', []), tiendaActual = mem.leer('tiendaActual', ''), precios = mem.leer('precios', {});
   var PASILLOS = [
-    ['🥬 Frutas y verduras', /tomate|cebolla|\bajo\b|ajos|papa|zanahoria|limon|aguacate|lechuga|pepino|cilantro|perejil|pimenton|espinaca|brocoli|calabacin|naranja|fresa|mango|banano|platano|champinon|repollo|apio|jengibre|albahaca|maiz tierno|coliflor|berenjena|ahuyama|manzana|pera|pina|mora|cebollin|\baji\b|yuca|batata|remolacha|habichuela|arveja|mazorca|esparrago/],
-    ['🥩 Carnes y pescados', /pollo|\bres\b|cerdo|carne|chorizo|tocineta|jamon|salchicha|panceta|costilla|bistec|chuleta|pescado|salmon|atun|camaron|calamar|mejillon/],
-    ['🥛 Lácteos y huevos', /leche(?! de coco)|queso|mantequilla(?! de mani)|crema de leche|yogur|huevo|yema|mascarpone/]
+    ['🥬 Frutas y verduras', /tomate|cebolla|\bajo\b|ajos|papa|zanahoria|limon|aguacate|lechuga|pepino|cilantro|perejil|pimenton|espinaca|brocoli|calabacin|naranja|fresa|mango|banano|platano|champinon|repollo|apio|jengibre|albahaca|maiz tierno|coliflor|berenjena|ahuyama|manzana|pera\b|pina|mora\b|cebollin|\baji\b|yuca|batata|remolacha|habichuela|arveja|mazorca|esparrago|fruta|verdura|guayaba|lulo|maracuya|papaya|hierbabuena|uva/],
+    ['🥩 Carnes y pescados', /pollo|\bres\b|cerdo|carne|chorizo|tocineta|jamon|salchicha|panceta|costilla|bistec|chuleta|pescado|salmon|atun|camaron|calamar|mejillon|mortadela|pechuga|muslo|alita/],
+    ['🥛 Lácteos y huevos', /leche(?! de coco)|queso|mantequilla(?! de mani)|crema de leche|yogur|huevo|yema|mascarpone|kumis|cuajada/],
+    ['🧼 Aseo y hogar', /papel|jabon|detergente|crema dental|champu|shampoo|servilleta|limpia|esponja|bolsas? de basura|suavizante|cloro|desodorante|toalla/]
   ];
+  var TIENDAS_SUGERIDAS = ['Ara', 'D1', 'Super Día', 'Éxito', 'Colsubsidio', 'Plaza de mercado', 'Tienda de barrio', 'Fruver', 'Carnicería', 'Panadería'];
+  var CANASTA = [
+    ['🥬', ['Papa', 'Tomate', 'Cebolla cabezona', 'Cebolla larga', 'Zanahoria', 'Plátano', 'Yuca', 'Limón', 'Aguacate', 'Banano', 'Cilantro', 'Ajo', 'Fruta para jugo']],
+    ['🥩', ['Pollo', 'Carne de res', 'Carne molida', 'Cerdo', 'Pescado', 'Salchichas', 'Atún']],
+    ['🥛', ['Leche', 'Huevos', 'Queso', 'Mantequilla', 'Yogur']],
+    ['🧂', ['Arroz', 'Aceite', 'Sal', 'Azúcar', 'Panela', 'Café', 'Chocolate', 'Lentejas', 'Fríjol', 'Pasta', 'Harina de trigo', 'Harina para arepas', 'Avena', 'Pan', 'Galletas']],
+    ['🧼', ['Papel higiénico', 'Jabón de baño', 'Detergente', 'Jabón de loza', 'Crema dental', 'Bolsas de basura']]
+  ];
+  var canastaAbierta = false, avisoMercado = '', ocr = null, dictado = null;
+
+  // Clave con la que se recuerda el precio de un producto: "2 libras de arroz" y "Arroz blanco" -> "arroz"
+  var COMPUESTOS = /^(carne (?:molida|de res|de cerdo)|harina (?:de trigo|de maiz|para arepas|precocida)|cebolla (?:larga|cabezona|morada|blanca)|salsa (?:inglesa|de \w+)|papel higienico|jabon (?:de \w+|liquido)|crema (?:de leche|dental)|pan (?:de molde|tajado)|aceite de \w+|leche de coco|leche en polvo)/;
+  function pkDe(t) {
+    var s = sinT(String(t)).replace(/\(.*?\)/g, ' ').replace(/[,.:;].*$/, ' ').trim();
+    s = s.replace(/^(\d+(?:[.,]\d+)?\s*(?:kg|kilos?|libras?|lb|g|gr|gramos?|litros?|lts?|l|ml|unidades?|und|docenas?|paquetes?|bolsas?|cajas?|botellas?|latas?)?\s*(?:de\s+)?)+/, '');
+    s = s.replace(/^(un|una|el|la|los|las|de|del)\s+/, '').replace(/^(?:diente|tallo|hoja|rebanada|tajada|lamina|presa|filete|rama|trozo|cubo|lata|paquete|bolsa|porcion|astilla|pizca)s?\s+de\s+/, '');
+    // Quita medidas y presentaciones que vienen en los tiquetes: 1l, 500g, x30, 2kg
+    s = s.split(/\s+/).filter(function (w) { return !/^(\d+(?:[.,]\d+)?(?:kg|g|gr|l|lt|lts|ml|und|u|x\d*)?|x\d+)$/.test(w); }).join(' ');
+    var m = COMPUESTOS.exec(s);
+    if (m) return m[0];
+    var a = s.split(/\s+/)[0] || '';
+    if (a.length > 4 && /[aeiou]s$/.test(a)) a = a.slice(0, -1);
+    return a;
+  }
+  function nombreProducto(n) { return n.split('|')[0].replace(/^de /, '').replace(/\s*\(.*?\)/g, '').trim(); }
+  function pasilloDe(nombre) {
+    var nom = sinT(nombre);
+    for (var i = 0; i < PASILLOS.length; i++) if (PASILLOS[i][1].test(nom)) return i;
+    return PASILLOS.length;
+  }
+  function cop(n) { return '$' + Math.round(n).toLocaleString('es-CO'); }
+  function fechaCorta(f) {
+    if (!f) return '';
+    var d = new Date(f + 'T12:00:00'), m = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    return d.getDate() + ' ' + m[d.getMonth()];
+  }
+  function guardarPrecio(pk, tienda, valor) {
+    if (!pk || !tienda) return;
+    if (valor > 0) { (precios[pk] = precios[pk] || {})[tienda] = { p: Math.round(valor), f: hoy() }; }
+    else if (precios[pk]) { delete precios[pk][tienda]; if (!Object.keys(precios[pk]).length) delete precios[pk]; }
+    mem.guardar('precios', precios);
+  }
+
   function listaCompras() {
     var mapa = {}, orden = [];
     idsPlan().forEach(function (id) {
@@ -360,39 +407,233 @@ var EXTRAS = (function () {
     });
     var grupos = PASILLOS.map(function (p) { return { t: p[0], items: [] }; }).concat([{ t: '🧂 Despensa', items: [] }]);
     orden.forEach(function (k) {
-      var it = mapa[k], nom = sinT(it.n), g = 3;
-      for (var i = 0; i < PASILLOS.length; i++) if (PASILLOS[i][1].test(nom)) { g = i; break; }
-      grupos[g].items.push({ k: k, texto: A().textoIngrediente(it, 1), de: it.de });
+      var it = mapa[k], prod = nombreProducto(it.n);
+      grupos[pasilloDe(it.n)].items.push({ k: k, pk: pkDe(prod), prod: prod, texto: A().textoIngrediente(it, 1), de: it.de });
+    });
+    extra.forEach(function (x, i) {
+      grupos[pasilloDe(x)].items.push({ k: 'extra§' + x, pk: pkDe(x), prod: x, texto: esc(x), de: [], extra: i });
     });
     return grupos;
   }
+  function todosLosItems() {
+    var l = [];
+    listaCompras().forEach(function (g) { g.items.forEach(function (it) { l.push(it); }); });
+    return l;
+  }
+
+  // Precios que conozco del producto en las otras tiendas (⬇ = el más barato de todos)
+  function pistaPrecio(pk) {
+    var p = precios[pk]; if (!p) return '';
+    var tiendasCon = Object.keys(p), min = Math.min.apply(null, tiendasCon.map(function (t) { return p[t].p; }));
+    var otras = tiendasCon.filter(function (t) { return t !== tiendaActual; });
+    if (!otras.length) return '';
+    return otras.map(function (t) { return esc(t) + ': ' + cop(p[t].p) + ' (' + fechaCorta(p[t].f) + ')' + (p[t].p === min && tiendasCon.length > 1 ? ' ⬇' : ''); }).join(' · ');
+  }
+  function refrescarPistas() {
+    var cur = tiendaActual;
+    document.querySelectorAll('[data-pista]').forEach(function (el) {
+      var pk = el.dataset.pista, p = precios[pk], t = pistaPrecio(pk);
+      var barata = p && cur && p[cur] && Object.keys(p).length > 1 && p[cur].p === Math.min.apply(null, Object.keys(p).map(function (k) { return p[k].p; }));
+      el.innerHTML = (t ? '💲 ' + t : '') + (barata ? (t ? ' · ' : '') + '✅ aquí es lo más barato que he visto' : '');
+    });
+    var r = document.getElementById('resumen-mercado');
+    if (r) r.innerHTML = resumenHTML();
+  }
+
+  function resumenHTML() {
+    var items = todosLosItems();
+    if (!items.length) return '';
+    if (!tiendas.length) return '<p class="suave" style="margin:0">Agrega tus tiendas arriba y anota lo que pagas: con eso te digo cuánto te cuesta este mercado en cada una.</p>';
+    var filas = tiendas.map(function (t) {
+      var total = 0, con = 0;
+      items.forEach(function (it) { var p = precios[it.pk] && precios[it.pk][t.n]; if (p) { total += p.p; con++; } });
+      return { t: t, total: total, con: con, falta: items.length - con };
+    });
+    var completas = filas.filter(function (f) { return f.falta === 0; }).sort(function (a, b) { return a.total - b.total; });
+    var conclusion;
+    if (completas.length > 1) {
+      conclusion = '<p class="completa" style="margin:10px 0 0">💰 Para esta lista conviene ' + esc(completas[0].t.n) + ': ' + cop(completas[0].total) + '. Ahorras ' + cop(completas[completas.length - 1].total - completas[0].total) + ' frente a ' + esc(completas[completas.length - 1].t.n) + '.</p>';
+    } else if (completas.length === 1) {
+      conclusion = '<p style="margin:10px 0 0">Solo conozco todos los precios en ' + esc(completas[0].t.n) + ' (' + cop(completas[0].total) + '). Anota los de las otras tiendas para poder comparar.</p>';
+    } else {
+      conclusion = '<p class="pista izq" style="margin:10px 0 0">Todavía no puedo decirte cuál tienda conviene: para comparar necesito el precio de todos los productos en cada tienda. Entre más anotes, mejor te aconsejo.</p>';
+    }
+    return '<table class="tabla-tiendas"><tr><th>Tienda</th><th>Suma conocida</th><th>Faltan</th></tr>' + filas.map(function (f) {
+      return '<tr' + (f.t.n === tiendaActual ? ' class="actual"' : '') + '><td>' + esc(f.t.n) + (f.t.zona ? '<small>' + esc(f.t.zona) + '</small>' : '') + '</td><td>' + (f.con ? cop(f.total) : '—') + '</td><td>' + (f.falta ? f.falta + ' de ' + items.length : '✅ ninguno') + '</td></tr>';
+    }).join('') + '</table>' + conclusion +
+      '<p class="pista izq">Son los precios que tú anotaste y pueden haber cambiado. Cada precio es el de ese producto en la cantidad que anotaste.</p>';
+  }
+
   function verCompras() {
     var grupos = listaCompras(), total = 0;
     grupos.forEach(function (g) { total += g.items.length; });
-    A().app.innerHTML = '<a class="volver" href="#/plan">← Plan de la semana</a><div class="panel"><h2>🛒 Lista de compras</h2>' +
-      (total || extra.length ? '<p class="suave">Sale de las recetas de tu plan, sumando cantidades repetidas. Marca lo que ya tienes o ya compraste.</p>' +
-        '<div class="fila-botones"><button class="boton" data-accion="compras-compartir">📤 Compartir lista</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button></div><p class="pista izq" id="aviso-compras"></p>'
-        : '<p class="vacio">Tu plan está vacío. Agrega recetas al plan y aquí aparecerá todo lo que necesitas comprar.</p><a class="boton" href="#/plan">Ir al plan</a>') + '</div>' +
+    var enLista = extra.map(function (x) { return sinT(x); });
+    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' +
+      '<div class="panel"><h2>🛒 Lista del mercado</h2>' +
+        '<div class="fila-botones"><label class="suave" for="ciudad">Ciudad</label><input class="buscador corto" id="ciudad" placeholder="Zipaquirá" value="' + esc(ciudad) + '"></div>' +
+        '<div class="fila-botones"><label class="suave" for="tienda-actual">Hoy voy a comprar en</label><select id="tienda-actual"><option value="">— elige una tienda —</option>' +
+          tiendas.map(function (t) { return '<option value="' + esc(t.n) + '"' + (t.n === tiendaActual ? ' selected' : '') + '>' + esc(t.n) + (t.zona ? ' (' + esc(t.zona) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
+        '<details class="mis-tiendas"' + (tiendas.length ? '' : ' open') + '><summary>Mis tiendas (' + tiendas.length + ')</summary>' +
+          (tiendas.length ? '<ul class="lista">' + tiendas.map(function (t, i) { return '<li class="fila-mercado"><span style="flex:1">' + esc(t.n) + (t.zona ? '<small>' + esc(t.zona) + '</small>' : '') + '</span><button class="quitar" data-accion="tienda-quitar" data-valor="' + i + '" aria-label="Quitar ' + esc(t.n) + '">✕</button></li>'; }).join('') + '</ul>' : '') +
+          '<p class="suave" style="margin:10px 0 4px">Toca las tiendas donde mercas:</p>' +
+          '<div class="filtros" style="margin:0 0 10px">' + TIENDAS_SUGERIDAS.filter(function (s) { return !tiendas.some(function (t) { return t.n === s; }); }).map(function (s) { return '<button class="chip" data-accion="tienda-sugerida" data-valor="' + esc(s) + '">+ ' + esc(s) + '</button>'; }).join('') + '</div>' +
+          '<div class="fila-botones"><input class="buscador corto" id="tienda-nombre" placeholder="Otra tienda"><input class="buscador corto" id="tienda-zona" placeholder="Barrio o sector (opcional)"><button class="boton" data-accion="tienda-agregar">Agregar</button></div>' +
+          '<p class="pista izq">Ara, D1 y Super Día son las que me nombraste para Zipaquirá. No tengo direcciones ni horarios: escribe el barrio de cada una si quieres distinguirlas.</p>' +
+        '</details></div>' +
+      '<div class="panel"><h2>➕ Agregar a la lista</h2>' +
+        '<div class="fila-botones"><input class="buscador" id="nueva-compra" placeholder="Escribe: leche, huevos, arroz…" style="flex:1;min-width:190px"><button class="boton" data-accion="compras-agregar">Agregar</button></div>' +
+        '<div class="fila-botones">' + (Rec ? '<button class="boton secundario" data-accion="compras-dictar">🎤 Dictar</button>' : '') +
+          '<button class="boton secundario" data-accion="tiquete-abrir">📷 Leer tiquete</button><input type="file" id="foto-tiquete" accept="image/*" hidden></div>' +
+        '<p class="pista izq" id="aviso-mercado">' + (avisoMercado || 'Escribe varias cosas separadas por comas, dicta, o toma una foto al tiquete de una compra: lo leo en tu celular, sin subir la foto a ningún lado. Lo que planees cocinar se suma solo desde el <a href="#/plan">plan de la semana</a>.') + '</p>' +
+        '<div id="ocr-resultado"></div>' +
+        '<button class="chip" data-accion="canasta-abrir">🧺 Lo de siempre ' + (canastaAbierta ? '▲' : '▼') + '</button>' +
+        (canastaAbierta ? CANASTA.map(function (c) {
+          return '<div class="grupo-filtro" style="margin-top:10px"><strong style="min-width:28px">' + c[0] + '</strong>' + c[1].map(function (x) {
+            return '<button class="chip' + (enLista.indexOf(sinT(x)) >= 0 ? ' activo' : '') + '" data-accion="canasta" data-valor="' + esc(x) + '">' + esc(x) + '</button>';
+          }).join('') + '</div>';
+        }).join('') : '') + '</div>' +
+      (total ? '<div class="panel"><div class="fila-botones" style="margin-top:0"><button class="boton" data-accion="compras-whatsapp">💬 WhatsApp</button><button class="boton secundario" data-accion="compras-compartir">📤 Copiar / compartir</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button><button class="boton secundario" data-accion="compras-vaciar">Borrar lo agregado a mano</button></div>' +
+        '<p class="pista izq" id="aviso-compras">' + (tiendaActual ? 'Anota a la derecha lo que pagas en ' + esc(tiendaActual) + '. La próxima vez ya lo sabré.' : 'Elige arriba la tienda donde vas a comprar para poder anotar los precios.') + '</p></div>'
+        : '<p class="vacio">Tu lista está vacía. Escribe, dicta, lee un tiquete o toca «Lo de siempre» para empezar.</p>') +
       grupos.filter(function (g) { return g.items.length; }).map(function (g) {
         return '<div class="panel"><h2>' + g.t + '</h2><ul class="lista">' + g.items.map(function (it) {
-          return '<li><label><input type="checkbox" data-compra="' + esc(it.k) + '"' + (hechas[it.k] ? ' checked' : '') + '><span>' + it.texto + '<small>' + it.de.join(' · ') + '</small></span></label></li>';
+          var mio = tiendaActual && precios[it.pk] && precios[it.pk][tiendaActual];
+          return '<li class="fila-mercado"><label><input type="checkbox" data-compra="' + esc(it.k) + '"' + (hechas[it.k] ? ' checked' : '') + '><span>' + it.texto +
+            '<small>' + (it.de.length ? esc(it.de.join(' · ')) + '<br>' : '') + '<span data-pista="' + esc(it.pk) + '"></span></small></span></label>' +
+            '<input class="precio" type="number" inputmode="numeric" min="0" step="50" data-precio="' + esc(it.pk) + '" placeholder="$"' + (mio ? ' value="' + mio.p + '"' : '') + (tiendaActual ? '' : ' disabled') + ' aria-label="Precio de ' + esc(it.prod) + (tiendaActual ? ' en ' + esc(tiendaActual) : '') + '">' +
+            (it.extra != null ? '<button class="quitar" data-accion="compras-quitar" data-valor="' + it.extra + '" aria-label="Quitar">✕</button>' : '') + '</li>';
         }).join('') + '</ul></div>';
       }).join('') +
-      '<div class="panel"><h2>➕ Otras cosas</h2><ul class="lista">' + extra.map(function (x, i) {
-        return '<li><label><input type="checkbox" data-compra="extra§' + esc(x) + '"' + (hechas['extra§' + x] ? ' checked' : '') + '><span>' + esc(x) + '</span></label><button class="quitar" data-accion="compras-quitar" data-valor="' + i + '" aria-label="Quitar">✕</button></li>';
-      }).join('') + '</ul><div class="fila-botones"><input class="buscador" id="nueva-compra" placeholder="Agregar algo a mano (papel, jabón…)" style="flex:1"><button class="boton" data-accion="compras-agregar">Agregar</button></div></div>';
+      (total ? '<div class="panel"><h2>💰 ¿Cuánto me cuesta este mercado?</h2><div id="resumen-mercado"></div></div>' : '');
+    avisoMercado = '';
+    refrescarPistas();
   }
+
+  function agregarACompras(texto) {
+    var nuevos = 0;
+    String(texto).split(/\s*(?:,|;|\n|\s+y\s)\s*/).forEach(function (x) {
+      x = x.trim().replace(/\.$/, '');
+      if (x.length < 2) return;
+      x = x.charAt(0).toUpperCase() + x.slice(1);
+      if (!extra.some(function (e) { return sinT(e) === sinT(x); })) { extra.push(x); nuevos++; }
+    });
+    mem.guardar('comprasExtra', extra);
+    return nuevos;
+  }
+
   function textoCompras() {
-    var out = ['Lista de compras — Paso a Paso', ''];
+    var out = ['Lista del mercado' + (tiendaActual ? ' — ' + tiendaActual : '') + (ciudad ? ' (' + ciudad + ')' : ''), ''], suma = 0, sinPrecio = 0;
     listaCompras().forEach(function (g) {
       var pend = g.items.filter(function (it) { return !hechas[it.k]; });
       if (!pend.length) return;
-      out.push(g.t); pend.forEach(function (it) { out.push('  [ ] ' + it.texto); }); out.push('');
+      out.push(g.t);
+      pend.forEach(function (it) {
+        var p = tiendaActual && precios[it.pk] && precios[it.pk][tiendaActual];
+        if (p) suma += p.p; else sinPrecio++;
+        out.push('  [ ] ' + it.texto.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&quot;/g, '"') + (p ? '  ~' + cop(p.p) : ''));
+      });
+      out.push('');
     });
-    var ex = extra.filter(function (x) { return !hechas['extra§' + x]; });
-    if (ex.length) { out.push('Otras cosas'); ex.forEach(function (x) { out.push('  [ ] ' + x); }); }
-    return out.join('\n');
+    if (suma) out.push('Total aproximado' + (sinPrecio ? ' (sin ' + sinPrecio + ' productos sin precio)' : '') + ': ' + cop(suma) + ' — precios que yo anoté, pueden haber cambiado.');
+    return out.join('\n').trim();
   }
+
+  // ---------------- Leer un tiquete con una foto (Tesseract.js, en el propio celular)
+  function cargarTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    return new Promise(function (ok, mal) {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+      s.onload = ok;
+      s.onerror = function () { mal(new Error('No pude descargar el lector de texto. Revisa tu conexión a internet.')); };
+      document.head.appendChild(s);
+    });
+  }
+  function prepararImagen(archivo) {
+    return createImageBitmap(archivo).then(function (bmp) {
+      var ancho = Math.min(1800, Math.max(bmp.width, 1100)), esc2 = ancho / bmp.width;
+      var c = document.createElement('canvas');
+      c.width = Math.round(bmp.width * esc2); c.height = Math.round(bmp.height * esc2);
+      var x = c.getContext('2d');
+      try { x.filter = 'grayscale(1) contrast(1.35)'; } catch (e) { /* sin filtros */ }
+      x.drawImage(bmp, 0, 0, c.width, c.height);
+      return c;
+    });
+  }
+  var NO_PRODUCTO = /total|subtotal|sub total|iva|impoconsumo|efectivo|cambio|tarjeta|credito|debito|nit\b|factura|recibo|gracias|cajer|fecha|hora|descuento|ahorro|redime|puntos|visa|mastercard|tel[eé]fono|www\.|resoluci|autoriz|^caja|articulos|items|vendedor|nequi|daviplata|propina|redondeo|saldo|pagado|vuelto/i;
+  function parsearTiquete(texto) {
+    var out = [];
+    texto.split(/\n/).forEach(function (linea) {
+      var l = linea.replace(/[|_~]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (l.length < 5 || NO_PRODUCTO.test(l)) return;
+      var m = /(\$?\s*)(\d{1,3}(?:[.,]\d{3})+|\d{3,6})(?:[.,]\d{1,2})?\s*[A-Za-z]?\s*$/.exec(l);
+      if (!m) return;
+      var precio = parseInt(m[2].replace(/[.,]/g, ''), 10);
+      if (!(precio >= 100 && precio <= 900000)) return;
+      var nombre = l.slice(0, m.index).replace(/\$/g, ' ')
+        .replace(/^\s*\d{4,}\s*/, '')                                    // código de barras
+        .replace(/\s+\d+(?:[.,]\d+)?\s*[xX*]\s*\d[\d.,]*\s*$/, '')       // "2 x 1.500"
+        .replace(/^\s*\d+\s*[xX*]\s*/, '')                                // "2 x "
+        .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .%/-]/g, ' ').replace(/\s+/g, ' ').trim();
+      if ((nombre.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length < 3) return;
+      nombre = nombre.toLowerCase();
+      out.push({ n: nombre.charAt(0).toUpperCase() + nombre.slice(1), p: precio });
+    });
+    return out;
+  }
+  function pintarOCR(estado) {
+    var cont = document.getElementById('ocr-resultado');
+    if (!cont) return;
+    if (!ocr) { cont.innerHTML = ''; return; }
+    if (ocr.leyendo) { cont.innerHTML = '<div class="panel ocr"><p style="margin:0">📷 ' + esc(estado || 'Leyendo el tiquete…') + '</p></div>'; return; }
+    if (ocr.error) { cont.innerHTML = '<div class="panel ocr"><p style="margin:0">⚠️ ' + esc(ocr.error) + '</p><div class="fila-botones"><button class="boton secundario" data-accion="ocr-cancelar">Cerrar</button></div></div>'; return; }
+    cont.innerHTML = '<div class="panel ocr"><h3>Esto fue lo que leí del tiquete</h3>' +
+      (ocr.items.length
+        ? '<p class="suave">Revisa cada línea: la lectura por foto se equivoca con letras borrosas. Corrige nombres y precios, y desmarca lo que no sirva.</p>' +
+          '<div class="fila-botones"><label class="suave" for="ocr-tienda">Tienda de este tiquete</label><select id="ocr-tienda"><option value="">— elige —</option>' +
+            tiendas.map(function (t) { return '<option value="' + esc(t.n) + '"' + (t.n === (ocr.tienda || tiendaActual) ? ' selected' : '') + '>' + esc(t.n) + '</option>'; }).join('') + '</select></div>' +
+          ocr.items.map(function (it, i) {
+            return '<div class="ocr-fila"><input type="checkbox" data-ocr-ok="' + i + '" checked aria-label="Usar esta línea"><input class="buscador" data-ocr-nombre="' + i + '" value="' + esc(it.n) + '"><input class="precio" type="number" inputmode="numeric" data-ocr-precio="' + i + '" value="' + it.p + '"></div>';
+          }).join('') +
+          '<div class="fila-botones"><button class="boton" data-accion="ocr-guardar">Guardar precios y agregar a la lista</button><button class="boton secundario" data-accion="ocr-cancelar">Descartar</button></div>'
+        : '<p>No pude encontrar productos con precio en la foto. Prueba con más luz, el tiquete bien estirado y de frente.</p><div class="fila-botones"><button class="boton secundario" data-accion="ocr-cancelar">Cerrar</button></div>') +
+      '<details><summary>Ver el texto que leí</summary><pre class="ocr-texto">' + esc(ocr.texto || '') + '</pre></details></div>';
+  }
+  function leerTiquete(archivo) {
+    ocr = { leyendo: true };
+    pintarOCR('Preparando la foto…');
+    prepararImagen(archivo).then(function (lienzo) {
+      pintarOCR('Descargando el lector de texto (solo la primera vez)…');
+      return cargarTesseract().then(function () {
+        return Tesseract.recognize(lienzo, 'spa', { logger: function (m) { if (m.status === 'recognizing text') pintarOCR('Leyendo el tiquete… ' + Math.round(m.progress * 100) + ' %'); } });
+      });
+    }).then(function (res) {
+      ocr = { items: parsearTiquete(res.data.text), texto: res.data.text, tienda: tiendaActual };
+      pintarOCR();
+    }).catch(function (e) {
+      ocr = { error: (e && e.message) || 'No pude leer la foto.' };
+      pintarOCR();
+    });
+  }
+  function guardarOCR() {
+    var tienda = (document.getElementById('ocr-tienda') || {}).value, guardados = 0, nuevos = 0;
+    if (!tienda) { avisoOCR('Elige primero la tienda de este tiquete.'); return; }
+    ocr.items.forEach(function (it, i) {
+      var ok = document.querySelector('[data-ocr-ok="' + i + '"]'), nom = document.querySelector('[data-ocr-nombre="' + i + '"]'), pr = document.querySelector('[data-ocr-precio="' + i + '"]');
+      if (!ok || !ok.checked || !nom || !pr) return;
+      var nombre = nom.value.trim(), valor = parseInt(pr.value, 10), pk = pkDe(nombre);
+      if (!nombre || !(valor > 0) || !pk) return;
+      guardarPrecio(pk, tienda, valor); guardados++;
+      if (!extra.some(function (e) { return pkDe(e) === pk; })) { extra.push(nombre); nuevos++; }
+    });
+    mem.guardar('comprasExtra', extra);
+    if (tiendas.every(function (t) { return t.n !== tienda; })) { tiendas.push({ n: tienda, zona: '' }); mem.guardar('tiendas', tiendas); }
+    tiendaActual = tienda; mem.guardar('tiendaActual', tiendaActual);
+    ocr = null;
+    avisoMercado = '✅ Guardé ' + guardados + (guardados === 1 ? ' precio' : ' precios') + ' de ' + tienda + (nuevos ? ' y agregué ' + nuevos + ' a la lista' : '') + '.';
+    verCompras();
+  }
+  function avisoOCR(t) { var el = document.querySelector('#ocr-resultado .panel'); if (el) { var p = el.querySelector('.aviso-ocr') || el.insertBefore(document.createElement('p'), el.firstChild.nextSibling); p.className = 'aviso-ocr nota error'; p.textContent = t; } }
 
   // ================================================================ APRENDER: técnicas, glosario y reto semanal
   var TECNICAS = [
@@ -524,16 +765,61 @@ var EXTRAS = (function () {
     'plan-vaciar': function () { plan = {}; mem.guardar('plan', plan); verPlan(); },
     'plan-sugerir': function () { sugerirSemana(); verPlan(); },
     'compras-agregar': function () {
-      var v = document.getElementById('nueva-compra').value.trim();
-      if (v) { extra.push(v); mem.guardar('comprasExtra', extra); verCompras(); }
+      var v = (document.getElementById('nueva-compra') || {}).value || '';
+      var n = agregarACompras(v);
+      avisoMercado = n ? '✅ Agregué ' + n + (n === 1 ? ' producto.' : ' productos.') : (v.trim() ? 'Eso ya estaba en la lista.' : '');
+      verCompras();
     },
     'compras-quitar': function (el) { extra.splice(Number(el.dataset.valor), 1); mem.guardar('comprasExtra', extra); verCompras(); },
+    'compras-vaciar': function () { extra = []; mem.guardar('comprasExtra', extra); verCompras(); },
     'compras-desmarcar': function () { hechas = {}; mem.guardar('comprasHechas', hechas); verCompras(); },
     'compras-compartir': function () {
       var t = textoCompras(), aviso = document.getElementById('aviso-compras');
-      if (navigator.share) { navigator.share({ title: 'Lista de compras', text: t }).catch(function () {}); return; }
+      if (navigator.share) { navigator.share({ title: 'Lista del mercado', text: t }).catch(function () {}); return; }
       if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { aviso.textContent = '✅ Lista copiada. Pégala en WhatsApp o en tus notas.'; }, function () { aviso.textContent = 'No pude copiarla automáticamente.'; });
     },
+    'compras-whatsapp': function () { window.open('https://wa.me/?text=' + encodeURIComponent(textoCompras()), '_blank', 'noopener'); },
+    'compras-dictar': function (el) {
+      if (!Rec) return;
+      if (dictado) { try { dictado.stop(); } catch (e) { /* ya detenido */ } return; }
+      dictado = new Rec(); dictado.lang = 'es-CO'; dictado.interimResults = false; dictado.continuous = false;
+      dictado.onresult = function (ev) {
+        var t = ev.results[0][0].transcript, n = agregarACompras(t);
+        avisoMercado = '🎤 Escuché: «' + t + '». ' + (n ? 'Agregué ' + n + (n === 1 ? ' producto.' : ' productos.') : 'Ya estaba en la lista.');
+      };
+      dictado.onerror = function (ev) { avisoMercado = ev.error === 'not-allowed' ? 'Necesito permiso para usar el micrófono.' : 'No pude escuchar. Intenta otra vez.'; };
+      dictado.onend = function () { dictado = null; verCompras(); };
+      el.textContent = '🎤 Escuchando… (toca para parar)';
+      try { dictado.start(); } catch (e) { dictado = null; }
+    },
+    'canasta-abrir': function () { canastaAbierta = !canastaAbierta; verCompras(); },
+    'canasta': function (el) {
+      var v = el.dataset.valor, k = -1;
+      extra.forEach(function (x, i) { if (sinT(x) === sinT(v)) k = i; });
+      if (k >= 0) extra.splice(k, 1); else extra.push(v);
+      mem.guardar('comprasExtra', extra); verCompras();
+    },
+    'tienda-agregar': function () {
+      var n = (document.getElementById('tienda-nombre').value || '').trim(), z = (document.getElementById('tienda-zona').value || '').trim();
+      if (!n) return;
+      if (!tiendas.some(function (t) { return sinT(t.n) === sinT(n); })) tiendas.push({ n: n, zona: z });
+      if (!tiendaActual) tiendaActual = n;
+      mem.guardar('tiendas', tiendas); mem.guardar('tiendaActual', tiendaActual); verCompras();
+    },
+    'tienda-sugerida': function (el) {
+      var n = el.dataset.valor;
+      if (!tiendas.some(function (t) { return t.n === n; })) tiendas.push({ n: n, zona: '' });
+      if (!tiendaActual) tiendaActual = n;
+      mem.guardar('tiendas', tiendas); mem.guardar('tiendaActual', tiendaActual); verCompras();
+    },
+    'tienda-quitar': function (el) {
+      var t = tiendas.splice(Number(el.dataset.valor), 1)[0];
+      if (t && t.n === tiendaActual) tiendaActual = '';
+      mem.guardar('tiendas', tiendas); mem.guardar('tiendaActual', tiendaActual); verCompras();
+    },
+    'tiquete-abrir': function () { var i = document.getElementById('foto-tiquete'); if (i) i.click(); },
+    'ocr-guardar': function () { guardarOCR(); },
+    'ocr-cancelar': function () { ocr = null; pintarOCR(); },
     'reto-hecho': function (el) {
       var k = retosHechos.indexOf(el.dataset.valor);
       if (k >= 0) retosHechos.splice(k, 1); else retosHechos.push(el.dataset.valor);
@@ -552,6 +838,10 @@ var EXTRAS = (function () {
   document.addEventListener('change', function (e) {
     var t = e.target;
     if (t.dataset && t.dataset.compra != null) { hechas[t.dataset.compra] = t.checked; mem.guardar('comprasHechas', hechas); }
+    if (t.dataset && t.dataset.precio != null && tiendaActual) { guardarPrecio(t.dataset.precio, tiendaActual, parseInt(t.value, 10)); refrescarPistas(); }
+    if (t.id === 'tienda-actual') { tiendaActual = t.value; mem.guardar('tiendaActual', tiendaActual); verCompras(); }
+    if (t.id === 'ciudad') { ciudad = t.value.trim(); mem.guardar('ciudad', ciudad); }
+    if (t.id === 'foto-tiquete' && t.files && t.files[0]) { var archivo = t.files[0]; t.value = ''; leerTiquete(archivo); }
     if (t.classList && t.classList.contains('mise')) {
       var todas = document.querySelectorAll('.mise'), listas = document.querySelectorAll('.mise:checked').length;
       document.getElementById('mise-cuenta').textContent = listas === todas.length ? '✅ Todo listo. ¡A cocinar!' : listas + ' de ' + todas.length + ' cosas listas';
@@ -566,6 +856,7 @@ var EXTRAS = (function () {
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.id === 'nueva-compra') acciones['compras-agregar']();
+    if (e.key === 'Enter' && (e.target.id === 'tienda-nombre' || e.target.id === 'tienda-zona')) acciones['tienda-agregar']();
   });
 
   // ================================================================ MENÚ, LETRA GRANDE Y MODO SIN CONEXIÓN

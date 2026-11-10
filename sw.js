@@ -1,7 +1,7 @@
 /* Modo sin conexión: guarda la app y las fotos que ya viste. */
-var CACHE = 'paso-a-paso-v1';
+var CACHE = 'paso-a-paso-v3';
 var BASE = ['./', 'index.html', 'styles.css', 'app.js', 'extras.js', 'recetas.js', 'recetas-mas.js', 'familias-1.js', 'familias-2.js', 'familias-3.js',
-  'japonesa.js', 'cocinas-1.js', 'cocinas-2.js', 'fotos-familias.js', 'creditos.js', 'manifest.json', 'icono.svg'];
+  'japonesa.js', 'cocinas-1.js', 'cocinas-2.js', 'fotos-familias.js', 'creditos.js', 'manifest.json', 'logo.png', 'favicon.png', 'icon-192.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }).then(function () { return self.skipWaiting(); }));
@@ -13,7 +13,18 @@ self.addEventListener('activate', function (e) {
 });
 self.addEventListener('fetch', function (e) {
   var url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  if (e.request.method !== 'GET') return;
+  if (url.hostname === 'cdn.jsdelivr.net') {
+    // Lector de texto de tiquetes (Tesseract.js): se guarda la primera vez para usarlo sin conexión
+    e.respondWith(caches.match(e.request).then(function (r) {
+      return r || fetch(e.request).then(function (resp) {
+        if (resp && resp.ok) { var copia = resp.clone(); caches.open(CACHE).then(function (c) { c.put(e.request, copia); }); }
+        return resp;
+      });
+    }));
+    return;
+  }
+  if (url.origin !== location.origin) return;
   if (/\/fotos\//.test(url.pathname)) {
     // Fotos: primero la copia guardada (no cambian)
     e.respondWith(caches.match(e.request).then(function (r) {

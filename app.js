@@ -25,7 +25,7 @@
   var filtro = { texto: '', categoria: 'Todas' };
 
   // Color de cada categoría (tono de 0 a 360)
-  var TONOS = { 'Básicos': 42, 'Desayunos': 50, 'Platos fuertes': 14, 'Acompañamientos': 62, 'Sopas': 95, 'Ensaladas': 135, 'Comida japonesa': 350, 'Cocina italiana': 5, 'Cocina española': 38, 'Cocina mexicana': 150, 'Cocina peruana': 20, 'Cocina argentina': 205, 'Cocina brasileña': 110, 'Cocina boliviana': 0, 'Cocina venezolana': 48, 'Sándwiches y arepas': 28, 'Pasabocas': 78, 'Postres': 330, 'Bebidas': 200 };
+  var TONOS = { 'Básicos': 38, 'Desayunos': 46, 'Platos fuertes': 22, 'Acompañamientos': 56, 'Sopas': 62, 'Ensaladas': 74, 'Comida japonesa': 12, 'Cocina italiana': 28, 'Cocina española': 34, 'Cocina mexicana': 68, 'Cocina peruana': 18, 'Cocina argentina': 30, 'Cocina brasileña': 72, 'Cocina boliviana': 24, 'Cocina venezolana': 42, 'Sándwiches y arepas': 33, 'Pasabocas': 50, 'Postres': 15, 'Bebidas': 58 };
 
   // El libro va ordenado por capítulos (categorías); dentro de cada uno, primero las recetas con foto
   var CAPITULOS = ['Básicos', 'Desayunos', 'Platos fuertes', 'Acompañamientos', 'Sopas', 'Ensaladas', 'Comida japonesa', 'Cocina italiana', 'Cocina española', 'Cocina mexicana', 'Cocina peruana', 'Cocina argentina', 'Cocina brasileña', 'Cocina boliviana', 'Cocina venezolana', 'Sándwiches y arepas', 'Pasabocas', 'Postres', 'Bebidas'];
@@ -163,6 +163,7 @@
 
     app.innerHTML =
       '<header class="cabecera">' +
+        '<img class="logo" src="logo.png" alt="Logo de Paso a Paso: un halcón con gorro de chef" width="150" height="150">' +
         '<h1>Paso <span>a</span> Paso</h1>' +
         '<p>' + RECETAS.length + ' recetas explicadas con todo detalle: qué hacer, cómo se ve cuando va bien y qué errores evitar.</p>' +
         '<div class="acciones">' +

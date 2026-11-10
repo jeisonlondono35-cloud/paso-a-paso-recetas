@@ -1,35 +1,41 @@
 :root {
-  --fondo: #faf5ee;
-  --tarjeta: #ffffff;
-  --texto: #2b2420;
-  --suave: #75695f;
-  --borde: #e8ddd0;
-  --acento: #c2552d;
-  --acento-oscuro: #9f4220;
-  --acento-claro: #fbe9e0;
-  --verde: #2f6b55;
-  --verde-claro: #e3f1ea;
-  --amarillo-claro: #fdf3d3;
-  --rojo-claro: #fde5e2;
-  --sombra: 0 2px 10px rgba(80, 50, 20, .08);
+  /* Paleta tomada del logo: crema, naranja, marrón, verde oliva y amarillo */
+  --fondo: #fbf6e6;
+  --tarjeta: #fffdf6;
+  --texto: #3b2412;
+  --suave: #7b6650;
+  --borde: #eadcb8;
+  --acento: #98501b;
+  --acento-oscuro: #743c11;
+  --acento-claro: #fce7c4;
+  --sobre-acento: #ffffff;
+  --verde: #6a642a;
+  --verde-claro: #ecebc9;
+  --amarillo-claro: #fdf0c6;
+  --rojo-claro: #f9dcc6;
+  --naranja: #e78b28;
+  --amarillo: #f0a944;
+  --oliva: #7c7433;
+  --sombra: 0 2px 10px rgba(90, 50, 15, .10);
   --radio: 16px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fondo: #1c1815;
-    --tarjeta: #28221e;
-    --texto: #f3ebe3;
-    --suave: #b3a598;
-    --borde: #3d342d;
-    --acento: #ee7d52;
-    --acento-oscuro: #f59a76;
-    --acento-claro: #40261b;
-    --verde: #7fcbac;
-    --verde-claro: #1e332b;
-    --amarillo-claro: #3a3118;
-    --rojo-claro: #3f2220;
-    --sombra: 0 2px 10px rgba(0, 0, 0, .35);
+    --fondo: #1f160d;
+    --tarjeta: #2c2016;
+    --texto: #fbf1da;
+    --suave: #c3ab8a;
+    --borde: #47362a;
+    --acento: #e78b28;
+    --acento-oscuro: #f0a944;
+    --acento-claro: #40290f;
+    --sobre-acento: #2b1606;
+    --verde: #b4ae5c;
+    --verde-claro: #2b2a12;
+    --amarillo-claro: #3d2f0e;
+    --rojo-claro: #402318;
+    --sombra: 0 2px 10px rgba(0, 0, 0, .40);
   }
 }
 
@@ -79,7 +85,7 @@ a { color: var(--acento); }
   padding: 6px 14px;
   font-size: .92rem;
 }
-.chip.activo { background: var(--acento); border-color: var(--acento); color: #fff; }
+.chip.activo { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); }
 
 .rejilla {
   display: grid;
@@ -206,7 +212,7 @@ a { color: var(--acento); }
   border: none;
   border-radius: 999px;
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
   font-weight: 700;
   padding: 14px 26px;
   text-decoration: none;
@@ -226,7 +232,7 @@ a { color: var(--acento); }
   width: 38px; height: 38px;
   border-radius: 50%;
   background: var(--acento);
-  color: #fff;
+  color: var(--sobre-acento);
   font-weight: 700;
   display: grid; place-items: center;
   flex-shrink: 0;
@@ -303,7 +309,7 @@ a { color: var(--acento); }
   font-weight: 600;
   white-space: nowrap;
 }
-.temporizador.terminado { background: var(--acento); color: #fff; animation: latido .7s infinite alternate; }
+.temporizador.terminado { background: var(--acento); color: var(--sobre-acento); animation: latido .7s infinite alternate; }
 @keyframes latido { to { transform: translateX(-50%) scale(1.06); } }
 
 @media (max-width: 760px) {
@@ -347,8 +353,8 @@ body {
 .accion:hover span { transform: rotate(-12deg) scale(1.15); }
 .accion strong { display: block; font-size: 1.1rem; color: #fff; }
 .accion small { opacity: .9; color: #fff; }
-.accion.nevera { background: linear-gradient(135deg, #2f8f83, #2b6cb0); }
-.accion.sorpresa { background: linear-gradient(135deg, #e0652f, #c2377a); }
+.accion.nevera { background: linear-gradient(135deg, #7c7433, #55501f); }
+.accion.sorpresa { background: linear-gradient(135deg, #b8651a, #8a4515); }
 
 /* Tarjetas con color por categoría */
 .tarjeta { animation: entrar .4s ease both; }
@@ -412,9 +418,9 @@ body {
 }
 
 /* ============ Aspecto de libro de cocina ============ */
-:root { --papel: #fffaf0; --papel-sombra: rgba(90, 60, 20, .16); --lomo: #7a3b1d; }
+:root { --papel: #fffaf0; --papel-sombra: rgba(90, 60, 20, .16); --lomo: #7a3e12; }
 @media (prefers-color-scheme: dark) {
-  :root { --papel: #2c2620; --papel-sombra: rgba(0, 0, 0, .5); --lomo: #5a2c16; }
+  :root { --papel: #33261a; --papel-sombra: rgba(0, 0, 0, .5); --lomo: #5a2f0d; }
 }
 
 h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
@@ -556,7 +562,7 @@ html.letra-grande body { font-size: 1.15rem; }
 .fila-botones .boton { padding: 11px 18px; }
 .estrellas { display: flex; gap: 2px; margin: 6px 0 10px; }
 .estrella { border: none; background: none; font-size: 1.9rem; line-height: 1; color: var(--borde); padding: 0 2px; transition: transform .1s; }
-.estrella.on { color: #e9a400; }
+.estrella.on { color: var(--amarillo); }
 .estrella:hover { transform: scale(1.2); }
 .nota-propia { width: 100%; min-height: 76px; font: inherit; color: var(--texto); background: var(--fondo); border: 1.5px solid var(--borde); border-radius: 12px; padding: 10px 12px; resize: vertical; }
 .sust { padding: 10px 0; border-bottom: 1px dashed var(--borde); }
@@ -598,3 +604,39 @@ html.letra-grande body { font-size: 1.15rem; }
   .menu span { font-size: .6rem; }
   .grupo-filtro strong { min-width: 100%; }
 }
+
+/* ============ Mercado: tiendas, precios y tiquete ============ */
+.buscador.corto { width: auto; flex: 1; min-width: 150px; max-width: 280px; padding: 10px 14px; }
+.fila-mercado { display: flex; align-items: center; gap: 8px; }
+.fila-mercado > label { flex: 1; min-width: 0; }
+.fila-mercado .quitar { position: static; flex-shrink: 0; padding: 6px 8px; }
+.precio { width: 96px; flex-shrink: 0; font: inherit; color: var(--texto); background: var(--fondo); border: 1.5px solid var(--borde); border-radius: 10px; padding: 8px 10px; text-align: right; }
+.precio:focus, .buscador:focus { outline: none; border-color: var(--acento); }
+.precio:disabled { opacity: .4; }
+.mis-tiendas { margin-top: 6px; }
+.mis-tiendas summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
+.tabla-tiendas { width: 100%; border-collapse: collapse; }
+.tabla-tiendas th, .tabla-tiendas td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--borde); }
+.tabla-tiendas th { font-size: .8rem; color: var(--suave); text-transform: uppercase; letter-spacing: .04em; }
+.tabla-tiendas small { display: block; color: var(--suave); }
+.tabla-tiendas tr.actual td { background: var(--verde-claro); }
+.ocr { margin: 12px 0; border: 2px dashed var(--borde); box-shadow: none; }
+.ocr-fila { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.ocr-fila input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--verde); flex-shrink: 0; }
+.ocr-fila .buscador { flex: 1; min-width: 0; padding: 8px 12px; }
+.ocr-texto { white-space: pre-wrap; font-size: .8rem; background: var(--fondo); padding: 10px; border-radius: 8px; max-height: 220px; overflow: auto; }
+.lista small span:empty { display: none; }
+@media (max-width: 760px) { .precio { width: 84px; } .buscador.corto { max-width: none; } }
+
+.logo { display: block; margin: 0 auto 8px; width: 150px; height: 150px; border-radius: 50%; box-shadow: 0 8px 22px rgba(90, 50, 15, .22); }
+
+/* Detalles con los colores del logo */
+.cabecera h1 { color: var(--acento); }
+.cabecera h1 span { color: var(--naranja); }
+html:not([data-x]) .menu a:hover, .menu button:hover { background: var(--acento-claro); }
+.boton:focus-visible, .chip:focus-visible, a:focus-visible, button:focus-visible { outline: 3px solid var(--amarillo); outline-offset: 2px; }
+::selection { background: var(--amarillo); color: #2b1606; }
+
+/* Los campos de precio no deben heredar el tamaño de las casillas */
+.lista input.precio, .lista input[type=number] { width: 96px; height: auto; margin-top: 0; accent-color: auto; }
+@media (max-width: 760px) { .lista input.precio { width: 84px; } }

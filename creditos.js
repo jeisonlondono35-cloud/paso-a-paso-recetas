@@ -211,9 +211,9 @@ var CREDITOS = {
     "url": "https://commons.wikimedia.org/wiki/File:Bowl_of_Cream_of_Mushroom_Soup.JPG"
   },
   "sopa-verduras": {
-    "autor": "Kolforn (Kolforn) I'd appreciate if you could mail",
-    "licencia": "CC BY-SA 4.0",
-    "url": "https://commons.wikimedia.org/wiki/File:-2022-02-01_Bowl_of_spring_vegetable_soup,_Trimingham,_Norfolk.JPG"
+    "autor": "Horacio Cambeiro",
+    "licencia": "CC BY-SA 3.0",
+    "url": "https://commons.wikimedia.org/wiki/File:Traditional_Vegetable_Soup_from_Argentina.jpg"
   },
   "arroz-integral": {
     "autor": "Zigzig20s",
@@ -951,8 +951,8 @@ var CREDITOS = {
     "url": "https://commons.wikimedia.org/wiki/File:Potato_Bhaaji_(Spicy_Indian_potatoes).jpg"
   },
   "sopa-res": {
-    "autor": "Kolforn (Kolforn) I'd appreciate if you could mail",
-    "licencia": "CC BY-SA 4.0",
-    "url": "https://commons.wikimedia.org/wiki/File:-2022-02-01_Bowl_of_spring_vegetable_soup,_Trimingham,_Norfolk.JPG"
+    "autor": "Horacio Cambeiro",
+    "licencia": "CC BY-SA 3.0",
+    "url": "https://commons.wikimedia.org/wiki/File:Traditional_Vegetable_Soup_from_Argentina.jpg"
   }
 };
