@@ -337,12 +337,8 @@
         '<p>' + RECETAS.length + ' recetas explicadas con todo detalle: qué hacer, cómo se ve cuando va bien y qué errores evitar.</p>' +
       '</header>' +
       EXTRAS.bienvenidaHTML() +
-      '<div class="acciones">' +
-        '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Llénala y te digo qué puedes cocinar</small></div></a>' +
-        '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
-      '</div>' +
       '<div class="buscar">' +
-        '<input class="buscador" id="buscador" type="search" autocomplete="off" enterkeyhint="search" aria-label="Buscar recetas" placeholder="🔍 ¿Qué quieres cocinar hoy?" value="' + esc(filtro.texto) + '">' +
+        '<input class="buscador" id="buscador" type="search" autocomplete="off" enterkeyhint="search" aria-label="Buscar recetas" placeholder="🔍 ¿Qué cocinamos hoy?" value="' + esc(filtro.texto) + '">' +
         '<div class="buscar-btns">' + (Rec ? '<button type="button" data-accion="buscar-voz" aria-label="Buscar con la voz" title="Buscar con la voz">🎤</button>' : '') +
           '<button type="button" id="btn-borrar" data-accion="buscar-borrar" aria-label="Borrar búsqueda"' + (filtro.texto ? '' : ' hidden') + '>✕</button></div>' +
         '<div class="sugerencias" id="sugerencias" hidden></div>' +
@@ -352,6 +348,10 @@
         MOMENTOS.map(function (m) {
           return '<button type="button" class="momento' + (filtro.momento === m[0] ? ' activo' : '') + '" data-accion="momento" data-valor="' + m[0] + '"><span>' + m[1] + '</span><small>' + m[2] + '</small></button>';
         }).join('') +
+      '</div>' +
+      '<div class="acciones">' +
+        '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Llénala y te digo qué puedes cocinar</small></div></a>' +
+        '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
       '</div>' +
       EXTRAS.inicioHTML() +
       '<div class="filtros">' +
@@ -429,6 +429,7 @@
       '<a class="volver" href="#/">← Todas las recetas</a>' +
       '<div class="panel"><h2>🧊 Mi nevera y mi alacena</h2>' +
         '<p class="suave" style="margin:0">Toca lo que tienes en casa y mira cómo se llena. Abajo te digo qué puedes cocinar y qué te falta. La sal, el aceite, el azúcar y el agua ya los doy por hechos.</p></div>' +
+      '<div class="nev-barra" id="nev-barra"></div>' +
       '<div class="nev-layout">' +
         '<div class="nev-visual" id="nev-visual"></div>' +
         '<div class="panel">' +
@@ -443,10 +444,23 @@
     pintarNevera();
   }
 
+  var nevListas = 0;
   function pintarNevera() {
     pintarVisual();
     pintarPicker();
     pintarResultadosNevera();
+    pintarBarra();
+  }
+  // Barra pegada arriba (en celular): lo que llevas y cuántas recetas ya puedes cocinar
+  function pintarBarra() {
+    var el = document.getElementById('nev-barra');
+    if (!el) return;
+    var n = enNevera.length;
+    el.innerHTML = '<div class="nev-barra-in"><div class="nev-mini">' + (n ? enNevera.map(function (id) {
+      var it = NEV_POR_ID[id];
+      return '<button type="button" class="mini' + (id === ultimoAgregado ? ' nuevo' : '') + '" data-accion="nevera" data-valor="' + esc(id) + '" aria-label="Sacar ' + esc(it.n) + '">' + it.e + '</button>';
+    }).join('') : '<span class="suave" style="margin:0;font-size:.9rem">Toca ingredientes para llenar tu nevera</span>') + '</div>' +
+      '<button type="button" class="boton" data-accion="nevera-ir"' + (n ? '' : ' disabled') + '>' + (n ? '🍳 Ver ' + (nevListas ? nevListas + ' recetas' : 'recetas') + ' ↓' : '🍳 Recetas') + '</button></div>';
   }
 
   function estanteHTML(titulo, cats) {
@@ -487,7 +501,7 @@
   function pintarResultadosNevera() {
     var caja = document.getElementById('nevera-resultado');
     if (!caja) return;
-    if (!enNevera.length) { caja.innerHTML = '<p class="vacio">👆 Toca lo que tienes en casa y te digo qué puedes cocinar.</p>'; return; }
+    if (!enNevera.length) { nevListas = 0; caja.innerHTML = '<p class="vacio">👆 Toca lo que tienes en casa y te digo qué puedes cocinar.</p>'; return; }
     var tengo = {};
     enNevera.forEach(function (id) { tengo[id] = 1; });
     var ops = [];
@@ -498,6 +512,7 @@
       if (tiene > 0) ops.push({ r: r, pide: pide.length, tiene: tiene, faltan: faltan });
     });
     var g0 = ops.filter(function (o) { return !o.faltan.length; }), g1 = ops.filter(function (o) { return o.faltan.length === 1; }), g2 = ops.filter(function (o) { return o.faltan.length === 2; });
+    nevListas = g0.length;
     var f = nevFiltro || (g0.length ? 'todo' : (g1.length ? 'una' : 'dos'));
     var lista = f === 'todo' ? g0 : (f === 'una' ? g1 : g2);
     lista.sort(function (a, b) { return (b.tiene - a.tiene) || ((a.r.gen ? 1 : 0) - (b.r.gen ? 1 : 0)); }); // las que usan más de lo que tienes, primero
@@ -777,6 +792,9 @@
       ultimoAgregado = '';
       memoria.guardar('nevera', enNevera);
       pintarNevera();
+    } else if (accion === 'nevera-ir') {
+      var meta = document.getElementById('nevera-resultado');
+      if (meta && meta.scrollIntoView) meta.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else if (accion === 'nevera-cat') {
       nevCat = valor; nevBusqueda = '';
       var caja = document.getElementById('nev-buscar'); if (caja) caja.value = '';
@@ -865,14 +883,23 @@
   });
 
   // Deslizar el dedo para pasar página
-  var toqueX = null;
-  document.addEventListener('touchstart', function (e) { toqueX = e.touches[0].clientX; }, { passive: true });
-  document.addEventListener('touchend', function (e) {
-    if (toqueX == null) return;
-    var dx = e.changedTouches[0].clientX - toqueX;
-    toqueX = null;
-    if (Math.abs(dx) > 70) pasarPagina(dx < 0 ? 1 : -1);
+  var toqueX = null, toqueY = null, toqueValido = false;
+  document.addEventListener('touchstart', function (e) {
+    toqueX = e.touches[0].clientX; toqueY = e.touches[0].clientY;
+    // No cuenta si empieza sobre un campo de texto, un menú o algo que se desplaza de lado
+    toqueValido = e.touches.length === 1 && !e.target.closest('input, textarea, select, .momentos, .nev-pestanas, .nev-mini, .menu');
   }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (toqueX == null || !toqueValido) { toqueX = null; return; }
+    var dx = e.changedTouches[0].clientX - toqueX, dy = e.changedTouches[0].clientY - toqueY;
+    toqueX = null;
+    // Solo un gesto largo y claramente horizontal pasa de página (no al desplazarse hacia abajo)
+    if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) pasarPagina(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // Con el teclado abierto se esconde el menú de abajo, para que no estorbe
+  document.addEventListener('focusin', function (e) { if (e.target.matches && e.target.matches('input:not([type=checkbox]):not([type=file]), textarea, select')) document.body.classList.add('teclado'); });
+  document.addEventListener('focusout', function () { setTimeout(function () { var f = document.activeElement; if (!f || !f.matches || !f.matches('input:not([type=checkbox]):not([type=file]), textarea, select')) document.body.classList.remove('teclado'); }, 60); });
 
   // Avanza (+1) o retrocede (-1) una página en el libro o en el modo cocina
   function pasarPagina(salto) {

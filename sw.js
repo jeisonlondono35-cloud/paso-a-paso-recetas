@@ -1,5 +1,5 @@
 /* Modo sin conexión: guarda la app y las fotos que ya viste. */
-var CACHE = 'paso-a-paso-v4';
+var CACHE = 'paso-a-paso-v5';
 var BASE = ['./', 'index.html', 'styles.css', 'app.js', 'extras.js', 'perfil.js', 'recetas.js', 'recetas-mas.js', 'familias-1.js', 'familias-2.js', 'familias-3.js',
   'japonesa.js', 'cocinas-1.js', 'cocinas-2.js', 'fotos-familias.js', 'creditos.js', 'manifest.json', 'logo.png', 'favicon.png', 'icon-192.png'];
 
