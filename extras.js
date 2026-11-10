@@ -552,11 +552,76 @@ var EXTRAS = (function () {
       '<p class="pista izq">Son los precios que tú anotaste y pueden haber cambiado. Cada precio es el de ese producto en la cantidad que anotaste.</p>';
   }
 
+  // ---------------- Terminé de comprar: gasto, historial y paso a la nevera
+  var historial = mem.leer('historialCompras', []), registradas = mem.leer('comprasRegistradas', {}), ultimaCompra = null;
+  function guardarHistorial() { mem.guardar('historialCompras', historial); mem.guardar('comprasRegistradas', registradas); }
+  function porRegistrar() { return todosLosItems().filter(function (it) { return hechas[it.k] && !registradas[it.k]; }); }
+
+  function terminarCompra() {
+    var items = porRegistrar();
+    if (!items.length) { avisoMercado = 'Primero marca con la casilla lo que ya compraste y luego toca «Terminé de comprar».'; verCompras(); return; }
+    var e = { f: hoy(), tienda: tiendaActual || '', total: 0, n: items.length, items: [], mio: 0, ref: 0, sin: 0 };
+    items.forEach(function (it) {
+      var d = precioDe(it.pk);
+      e.items.push(it.prod);
+      if (d) { e.total += d.p; e[d.tipo]++; } else e.sin++;
+    });
+    var nuevos = A().neveraDesdeTexto(e.items);
+    // lo que se compró a mano sale de la lista; lo del plan queda marcado como comprado
+    var idxExtra = {};
+    items.forEach(function (it) { registradas[it.k] = true; if (it.extra != null) idxExtra[it.extra] = true; });
+    extra = extra.filter(function (x, i) { return !idxExtra[i]; });
+    mem.guardar('comprasExtra', extra);
+    items.forEach(function (it) { if (it.extra != null) { delete hechas[it.k]; delete registradas[it.k]; } });
+    mem.guardar('comprasHechas', hechas);
+    historial.unshift(e); historial = historial.slice(0, 80);
+    guardarHistorial();
+    ultimaCompra = { e: e, nuevos: nuevos };
+    verCompras();
+    window.scrollTo(0, 0);
+  }
+
+  function ultimaCompraHTML() {
+    if (!ultimaCompra) return '';
+    var e = ultimaCompra.e, nv = ultimaCompra.nuevos;
+    return '<div class="panel resumen-compra"><h2>✅ Compra guardada</h2>' +
+      '<p style="margin:0 0 8px">' + e.n + (e.n === 1 ? ' producto' : ' productos') + (e.tienda ? ' en <strong>' + esc(e.tienda) + '</strong>' : '') + (ciudad ? ' (' + esc(ciudad) + ')' : '') +
+      (e.total ? ': <strong>≈ ' + cop(e.total) + '</strong>' : '') + '.</p>' +
+      (e.total ? '<p class="pista izq" style="margin:0 0 8px">' + e.mio + ' con precios tuyos' + (e.ref ? ', ' + e.ref + ' con precio de referencia' : '') + (e.sin ? ', ' + e.sin + ' sin precio (no suman)' : '') + '. ' +
+        (e.sin || e.ref ? 'Anota los que faltan para que el gasto sea exacto.' : '') + '</p>' : '') +
+      (nv.length ? '<p style="margin:0 0 8px">🧊 Pasé a tu nevera: ' + nv.map(esc).join(', ') + '.</p>' : '<p class="pista izq" style="margin:0 0 8px">Nada de lo que compraste es nuevo para tu nevera, o no lo reconozco como ingrediente.</p>') +
+      '<div class="fila-botones"><a class="boton" href="#/nevera">🍳 Ver qué puedo cocinar con esto</a><button class="boton secundario" data-accion="compra-cerrar">Cerrar</button></div></div>';
+  }
+
+  function historialHTML() {
+    if (!historial.length) return '';
+    var mes = hoy().slice(0, 7), delMes = 0, suma = 0, conTotal = 0, porTienda = {}, veces = {};
+    historial.forEach(function (e) {
+      if (e.total) { suma += e.total; conTotal++; if (e.f.slice(0, 7) === mes) delMes += e.total; }
+      var t = e.tienda || 'Sin tienda'; porTienda[t] = porTienda[t] || { n: 0, suma: 0 }; porTienda[t].n++; porTienda[t].suma += e.total || 0;
+      (e.items || []).forEach(function (n) { var k = sinT(n); veces[k] = veces[k] || { n: n, c: 0 }; veces[k].c++; });
+    });
+    var frecuentes = Object.keys(veces).map(function (k) { return veces[k]; }).filter(function (x) { return x.c >= 2; }).sort(function (a, b) { return b.c - a.c; }).slice(0, 8);
+    return '<div class="panel"><h2>📊 Mis mercados' + (ciudad ? ' en ' + esc(ciudad) : '') + '</h2>' +
+      '<p style="margin:0 0 8px">' + historial.length + (historial.length === 1 ? ' compra registrada' : ' compras registradas') +
+      (conTotal ? ' · promedio <strong>' + cop(suma / conTotal) + '</strong>' : '') + (delMes ? ' · este mes <strong>' + cop(delMes) + '</strong>' : '') + '.</p>' +
+      '<table class="tabla-tiendas"><tr><th>Tienda</th><th>Compras</th><th>Promedio</th></tr>' + Object.keys(porTienda).map(function (t) {
+        var x = porTienda[t]; return '<tr><td>' + esc(t) + '</td><td>' + x.n + '</td><td>' + (x.suma ? cop(x.suma / x.n) : '—') + '</td></tr>';
+      }).join('') + '</table>' +
+      (frecuentes.length ? '<p class="pista izq">Lo que más compras: ' + frecuentes.map(function (x) { return esc(x.n) + ' (' + x.c + ')'; }).join(', ') + '.</p>' : '') +
+      '<ul class="lista">' + historial.slice(0, 5).map(function (e) {
+        return '<li><details><summary>' + esc(fechaCorta(e.f)) + ' · ' + esc(e.tienda || 'Sin tienda') + ' · ' + (e.total ? cop(e.total) : 'sin precios') + ' · ' + e.n + ' productos</summary>' +
+          '<p class="pista izq" style="margin:6px 0 0">' + (e.items || []).map(esc).join(', ') + '</p></details></li>';
+      }).join('') + '</ul>' +
+      '<div class="fila-botones"><button class="chip" data-accion="historial-borrar">Borrar historial</button></div>' +
+      '<p class="pista izq">Los totales usan los precios que anotaste; si falta alguno, una referencia aproximada.</p></div>';
+  }
+
   function verCompras() {
     var grupos = listaCompras(), total = 0;
     grupos.forEach(function (g) { total += g.items.length; });
     var enLista = extra.map(function (x) { return sinT(x); });
-    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' +
+    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' + ultimaCompraHTML() +
       '<div class="panel"><h2>🛒 Lista del mercado</h2>' +
         '<div class="fila-botones"><label class="suave" for="ciudad">Ciudad</label><input class="buscador corto" id="ciudad" placeholder="Zipaquirá" value="' + esc(ciudad) + '"></div>' +
         '<div class="fila-botones"><label class="suave" for="tienda-actual">Hoy voy a comprar en</label><select id="tienda-actual"><option value="">— elige una tienda —</option>' +
@@ -580,7 +645,7 @@ var EXTRAS = (function () {
             return '<button class="chip' + (enLista.indexOf(sinT(x)) >= 0 ? ' activo' : '') + '" data-accion="canasta" data-valor="' + esc(x) + '">' + esc(x) + '</button>';
           }).join('') + '</div>';
         }).join('') : '') + '</div>' +
-      (total ? '<div class="panel"><div class="fila-botones" style="margin-top:0"><button class="boton" data-accion="compras-whatsapp">💬 WhatsApp</button><button class="boton secundario" data-accion="compras-compartir">📤 Copiar / compartir</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button><button class="boton secundario" data-accion="compras-vaciar">Borrar lo agregado a mano</button></div>' +
+      (total ? '<div class="panel"><div class="fila-botones" style="margin-top:0"><button class="boton" data-accion="compra-terminar">✅ Terminé de comprar' + (porRegistrar().length ? ' (' + porRegistrar().length + ')' : '') + '</button><button class="boton secundario" data-accion="compras-whatsapp">💬 WhatsApp</button><button class="boton secundario" data-accion="compras-compartir">📤 Copiar / compartir</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button><button class="boton secundario" data-accion="compras-vaciar">Borrar lo agregado a mano</button></div>' +
         '<p class="pista izq" id="aviso-compras">' + (tiendaActual ? 'Anota a la derecha lo que pagas en ' + esc(tiendaActual) + '. La próxima vez ya lo sabré.' : 'Elige arriba la tienda donde vas a comprar para poder anotar los precios.') + '</p></div>'
         : '<p class="vacio">Tu lista está vacía. Escribe, dicta, lee un tiquete o toca «Lo de siempre» para empezar.</p>') +
       grupos.filter(function (g) { return g.items.length; }).map(function (g) {
@@ -592,7 +657,7 @@ var EXTRAS = (function () {
             (it.extra != null ? '<button class="quitar" data-accion="compras-quitar" data-valor="' + it.extra + '" aria-label="Quitar">✕</button>' : '') + '</li>';
         }).join('') + '</ul></div>';
       }).join('') +
-      (total ? '<div class="panel"><h2>💰 ¿Cuánto me cuesta este mercado?</h2><div id="resumen-mercado"></div></div>' : '');
+      (total ? '<div class="panel"><h2>💰 ¿Cuánto me cuesta este mercado?</h2><div id="resumen-mercado"></div></div>' : '') + historialHTML();
     avisoMercado = '';
     refrescarPistas();
   }
@@ -704,7 +769,7 @@ var EXTRAS = (function () {
     });
   }
   function guardarOCR() {
-    var tienda = (document.getElementById('ocr-tienda') || {}).value, guardados = 0, nuevos = 0;
+    var tienda = (document.getElementById('ocr-tienda') || {}).value, guardados = 0, nuevos = 0, comprados = [], totalTiquete = 0;
     if (!tienda) { avisoOCR('Elige primero la tienda de este tiquete.'); return; }
     ocr.items.forEach(function (it, i) {
       var ok = document.querySelector('[data-ocr-ok="' + i + '"]'), nom = document.querySelector('[data-ocr-nombre="' + i + '"]'), pr = document.querySelector('[data-ocr-precio="' + i + '"]');
@@ -712,12 +777,21 @@ var EXTRAS = (function () {
       var nombre = nom.value.trim(), valor = parseInt(pr.value, 10), pk = pkDe(nombre);
       if (!nombre || !(valor > 0) || !pk) return;
       guardarPrecio(pk, tienda, valor); guardados++;
+      comprados.push(nombre); totalTiquete += valor;
       if (!extra.some(function (e) { return pkDe(e) === pk; })) { extra.push(nombre); nuevos++; }
     });
     mem.guardar('comprasExtra', extra);
     if (tiendas.every(function (t) { return t.n !== tienda; })) { tiendas.push({ n: tienda, zona: '' }); mem.guardar('tiendas', tiendas); }
     tiendaActual = tienda; mem.guardar('tiendaActual', tiendaActual);
     ocr = null;
+    if (comprados.length) {
+      // Lo que sale en un tiquete ya se compró: queda marcado, se suma al historial y pasa a la nevera
+      comprados.forEach(function (n) { var k = 'extra§' + n; hechas[k] = true; registradas[k] = true; });
+      mem.guardar('comprasHechas', hechas);
+      var ent = { f: hoy(), tienda: tienda, total: totalTiquete, n: comprados.length, items: comprados, mio: comprados.length, ref: 0, sin: 0 };
+      historial.unshift(ent); historial = historial.slice(0, 80); guardarHistorial();
+      ultimaCompra = { e: ent, nuevos: A().neveraDesdeTexto(comprados) };
+    }
     avisoMercado = '✅ Guardé ' + guardados + (guardados === 1 ? ' precio' : ' precios') + ' de ' + tienda + (nuevos ? ' y agregué ' + nuevos + ' a la lista' : '') + '.';
     verCompras();
   }
@@ -1095,7 +1169,10 @@ var EXTRAS = (function () {
     },
     'compras-quitar': function (el) { extra.splice(Number(el.dataset.valor), 1); mem.guardar('comprasExtra', extra); verCompras(); },
     'compras-vaciar': function () { extra = []; mem.guardar('comprasExtra', extra); verCompras(); },
-    'compras-desmarcar': function () { hechas = {}; mem.guardar('comprasHechas', hechas); verCompras(); },
+    'compras-desmarcar': function () { hechas = {}; registradas = {}; mem.guardar('comprasHechas', hechas); guardarHistorial(); verCompras(); },
+    'compra-terminar': function () { terminarCompra(); },
+    'compra-cerrar': function () { ultimaCompra = null; verCompras(); },
+    'historial-borrar': function () { if (window.confirm('¿Borrar el historial de compras? No se puede deshacer.')) { historial = []; guardarHistorial(); verCompras(); } },
     'compras-compartir': function () {
       var t = textoCompras(), aviso = document.getElementById('aviso-compras');
       if (navigator.share) { navigator.share({ title: 'Lista del mercado', text: t }).catch(function () {}); return; }

@@ -22,7 +22,7 @@
   var favoritos = memoria.leer('favoritos', []);
   var porcionesElegidas = memoria.leer('porciones', {});
   var marcados = {}; // ingredientes tachados, por receta
-  var filtro = { texto: '', categoria: 'Todas', momento: '' };
+  var filtro = { texto: '', categoria: 'Todas', momento: '', pais: '' };
 
   // Color de cada categoría (tono de 0 a 360)
   var TONOS = { 'Básicos': 38, 'Desayunos': 46, 'Platos fuertes': 22, 'Acompañamientos': 56, 'Sopas': 62, 'Ensaladas': 74, 'Comida japonesa': 12, 'Cocina italiana': 28, 'Cocina española': 34, 'Cocina mexicana': 68, 'Cocina peruana': 18, 'Cocina argentina': 30, 'Cocina brasileña': 72, 'Cocina boliviana': 24, 'Cocina venezolana': 42, 'Sándwiches y arepas': 33, 'Pasabocas': 50, 'Postres': 15, 'Bebidas': 58 };
@@ -175,12 +175,41 @@
 
   // ---------- Búsqueda fácil ----------
   // Momentos del día: un toque y ya está filtrado
+  // Cada receta sirve para uno o varios momentos del día. Las de cada país lo traen escrito (mom) o se deduce por el nombre.
+  var RX_POSTRE = /tiramis|churro|alfajor|pudim|bolo de|brigadeiro|natilla|arroz con leche|mousse|arequipe|torta|mochi|dorayaki|purin|castella|kakigori|helado|flan|bunuelo|oblea|postre|cocada|tres leches|panna|cannoli|brownie|crema catalana|quesillo|tembleque|dulce de leche|sorbete|compota|gelatina|tarta|paletas|galleta|muffin|buñuelo|cuñape dulce|picarones|suspiro|mazamorra morada|leche asada|torrija|churrasco dulce|pie de/;
+  var RX_BEBIDA = /(^| )jugos?( |$)|batido|limonada|horchata|aguapanela|chocolate (caliente|santaf)|salpicon|matcha latte|cafe |granizado|sangria|chicha|papelon|refresco|te frio|caipirinha|pisco|ponche|mate |smoothie|tinto|agua de|licuado|guarapo|api |tereré|terere|cremoso de/;
+  var RX_DESAYUNO = /almojabana|pandebono|huevo|omelette|tamagoyaki|changua|calentado|panqueque|tostada|arepa|desayuno|chilaquil|tortilla de patata|pan con|cunape|pao de queijo|tapioca|salten|avena|hotcake|cachapa|empanada de queso|tequeno|migas|churros con chocolate|tostadas/;
+  function momentosDe(r) {
+    if (r._m) return r._m;
+    var m, c = r.categoria, n = sinTildes(r.nombre), rapido = r.prep + r.coccion <= 30;
+    if (r.mom) m = [].concat(r.mom);
+    else if (c === 'Postres') m = ['postre'];
+    else if (c === 'Bebidas') m = ['bebida'];
+    else if (c === 'Desayunos') m = ['desayuno'];
+    else if (c === 'Sándwiches y arepas') m = ['desayuno', 'cena'];
+    else if (c === 'Pasabocas') m = ['cena'];
+    else if (c === 'Ensaladas' || c === 'Sopas') m = ['almuerzo', 'cena'];
+    else if (c === 'Acompañamientos') m = ['almuerzo'];
+    else if (RX_POSTRE.test(n)) m = ['postre'];
+    else if (RX_BEBIDA.test(n)) m = ['bebida'];
+    else if (/^Cocina |^Comida japonesa/.test(c) && RX_DESAYUNO.test(n)) m = ['desayuno'];
+    else m = rapido ? ['almuerzo', 'cena'] : ['almuerzo'];
+    r._m = m;
+    return m;
+  }
+  function esMomento(r, id) { return momentosDe(r).indexOf(id) >= 0; }
+  var PAISES = [
+    ['colombia', '🇨🇴', 'Colombia', 'Cocina colombiana'], ['japon', '🇯🇵', 'Japón', 'Comida japonesa'], ['italia', '🇮🇹', 'Italia', 'Cocina italiana'], ['espana', '🇪🇸', 'España', 'Cocina española'],
+    ['mexico', '🇲🇽', 'México', 'Cocina mexicana'], ['peru', '🇵🇪', 'Perú', 'Cocina peruana'], ['argentina', '🇦🇷', 'Argentina', 'Cocina argentina'], ['brasil', '🇧🇷', 'Brasil', 'Cocina brasileña'],
+    ['bolivia', '🇧🇴', 'Bolivia', 'Cocina boliviana'], ['venezuela', '🇻🇪', 'Venezuela', 'Cocina venezolana']
+  ];
+  function categoriaDePais(id) { var p = PAISES.filter(function (x) { return x[0] === id; })[0]; return p ? p[3] : ''; }
   var MOMENTOS = [
-    ['desayuno', '🍳', 'Desayuno', function (r) { return r.categoria === 'Desayunos' || r.categoria === 'Sándwiches y arepas'; }],
-    ['almuerzo', '🍛', 'Almuerzo', function (r) { return /Platos fuertes|Sopas|Acompañamientos|Comida japonesa|Cocina /.test(r.categoria); }],
-    ['cena', '🌙', 'Cena ligera', function (r) { return /Sopas|Ensaladas|Sándwiches y arepas|Pasabocas/.test(r.categoria) || (/Platos fuertes|Comida japonesa|Cocina /.test(r.categoria) && r.prep + r.coccion <= 30); }],
-    ['postre', '🍰', 'Postre', function (r) { return r.categoria === 'Postres'; }],
-    ['bebida', '🥤', 'Bebida', function (r) { return r.categoria === 'Bebidas'; }],
+    ['desayuno', '🍳', 'Desayuno', function (r) { return esMomento(r, 'desayuno'); }],
+    ['almuerzo', '🍛', 'Almuerzo', function (r) { return esMomento(r, 'almuerzo'); }],
+    ['cena', '🌙', 'Cena ligera', function (r) { return esMomento(r, 'cena'); }],
+    ['postre', '🍰', 'Postre', function (r) { return esMomento(r, 'postre'); }],
+    ['bebida', '🥤', 'Bebida', function (r) { return esMomento(r, 'bebida'); }],
     ['rapido', '⚡', 'Rápido', function (r) { return r.prep + r.coccion <= 30; }],
     ['facil', '👍', 'Fácil', function (r) { return r.dificultad === 'Fácil'; }],
     ['veg', '🥬', 'Vegetariano', function (r) { return EXTRAS.etiquetas(r).veg; }],
@@ -349,6 +378,12 @@
           return '<button type="button" class="momento' + (filtro.momento === m[0] ? ' activo' : '') + '" data-accion="momento" data-valor="' + m[0] + '"><span>' + m[1] + '</span><small>' + m[2] + '</small></button>';
         }).join('') +
       '</div>' +
+      '<div class="paises" role="group" aria-label="País o tipo de cocina">' +
+        '<button type="button" class="pais' + (filtro.pais ? '' : ' activo') + '" data-accion="pais" data-valor="">🌎 Todos</button>' +
+        PAISES.map(function (x) {
+          return '<button type="button" class="pais' + (filtro.pais === x[0] ? ' activo' : '') + '" data-accion="pais" data-valor="' + x[0] + '">' + x[1] + ' ' + x[2] + '</button>';
+        }).join('') +
+      '</div>' +
       '<div class="acciones">' +
         '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Llénala y te digo qué puedes cocinar</small></div></a>' +
         '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
@@ -443,6 +478,7 @@
     var pasaBase = function (r) {
       if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
       if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
+      if (filtro.pais && r.categoria !== categoriaDePais(filtro.pais)) return false;
       if (mom && !mom[3](r)) return false;
       return EXTRAS.pasaFiltros(r) && pista.pasa(r);
     };
@@ -464,6 +500,7 @@
       var sinReglas = function (r) {
         if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
         if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
+        if (filtro.pais && r.categoria !== categoriaDePais(filtro.pais)) return false;
         if (mom && !mom[3](r)) return false;
         return EXTRAS.pasaFiltros(r);
       };
@@ -905,6 +942,11 @@
       visibles = POR_PAGINA;
       document.querySelectorAll('.momento').forEach(function (b) { b.classList.toggle('activo', b.dataset.valor === filtro.momento); });
       pintarRejilla();
+    } else if (accion === 'pais') {
+      filtro.pais = valor || '';
+      visibles = POR_PAGINA;
+      document.querySelectorAll('.pais').forEach(function (b) { b.classList.toggle('activo', (b.dataset.valor || '') === filtro.pais); });
+      pintarRejilla();
     } else if (accion === 'reciente' || accion === 'dijiste') {
       ponerTexto(valor); guardarReciente(valor);
     } else if (accion === 'buscar-borrar') {
@@ -918,6 +960,7 @@
     } else if (accion === 'categoria') {
       filtro.categoria = valor;
       filtro.momento = '';
+      filtro.pais = '';
       visibles = POR_PAGINA;
       verInicio();
     } else if (accion === 'porciones' && ruta.receta) {
@@ -1034,8 +1077,24 @@
     if (sinSubir !== true) window.scrollTo(0, 0);
   }
 
+  // Lo que se compró pasa a la nevera: devuelve los nombres de lo que se agregó
+  function neveraDesdeTexto(lista) {
+    var nuevos = [];
+    lista.forEach(function (txt) {
+      var t = sinTildes(String(txt));
+      for (var k = 0; k < NEVERA.length; k++) {
+        var it = NEVERA[k];
+        if (it.re.test(t)) { if (enNevera.indexOf(it.id) < 0) { enNevera.push(it.id); nuevos.push(it.n); } break; }
+      }
+    });
+    if (nuevos.length) memoria.guardar('nevera', enNevera);
+    return nuevos;
+  }
+  function neveraCuantas() { return enNevera.length; }
+
   // Lo que extras.js necesita de esta app
   window.APP = {
+    neveraDesdeTexto: neveraDesdeTexto, neveraCuantas: neveraCuantas,
     app: app, buscarReceta: buscarReceta, tarjetaHTML: tarjetaHTML, textoIngrediente: textoIngrediente,
     porcionesDe: porcionesDe, tiempo: tiempo, iniciarTimer: iniciarTimer, pasarPagina: pasarPagina, rutaActual: rutaActual,
     // Lo que falta de cada temporizador, dicho en palabras (para el modo manos libres)

@@ -11,7 +11,7 @@ var PERFIL = (function () {
   'use strict';
 
   // Datos que pertenecen a cada perfil (todo lo demás es del dispositivo, como el tema)
-  var DATOS = ['favoritos', 'porciones', 'nevera', 'cocinadas', 'notas', 'tecnicas', 'retos', 'plan', 'comprasHechas', 'comprasExtra', 'ciudad', 'tiendas', 'tiendaActual', 'precios', 'misRecetas'];
+  var DATOS = ['favoritos', 'porciones', 'nevera', 'cocinadas', 'notas', 'tecnicas', 'retos', 'plan', 'comprasHechas', 'comprasExtra', 'ciudad', 'tiendas', 'tiendaActual', 'precios', 'misRecetas', 'historialCompras', 'comprasRegistradas'];
   var AVATARES = ['🍳', '🥑', '🍕', '🍰', '🌶️', '🍋', '🥕', '🧁', '🍜', '🥘', '🦊', '🐼', '🦉', '🌻', '⭐', '🔥'];
 
   function leer(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }

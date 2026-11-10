@@ -5,9 +5,9 @@
   var i = GEN.i, p = GEN.p, ajo = GEN.ajo, sal = GEN.sal, aceite = GEN.aceite;
 
   // Atajo: R(categoría, nombre, emoji, foto, [prep, cocción], porciones, dificultad, descripción, antes, ingredientes, utensilios, pasos, guardar)
-  var R = GEN.R = function (cat, nombre, emoji, foto, t, por, dif, desc, antes, ing, uten, pasos, guardar) {
+  var R = GEN.R = function (cat, nombre, emoji, foto, t, por, dif, desc, antes, ing, uten, pasos, guardar, mom) {
     GEN.agregar({ nombre: nombre, emoji: emoji, categoria: cat, dificultad: dif, foto: foto, prep: t[0], coccion: t[1], porciones: por,
-      descripcion: desc, antes: antes, ingredientes: ing, utensilios: uten, pasos: pasos, guardar: guardar });
+      descripcion: desc, antes: antes, ingredientes: ing, utensilios: uten, pasos: pasos, guardar: guardar, mom: mom });
   };
 
   // ================================================================ ITALIANA
