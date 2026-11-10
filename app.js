@@ -170,7 +170,8 @@
           '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
         '</div>' +
       '</header>' +
-      '<input class="buscador" id="buscador" type="search" placeholder="🔍 Buscar receta o ingrediente…" value="' + filtro.texto.replace(/"/g, '&quot;') + '">' +
+      '<input class="buscador" id="buscador" type="search" placeholder="🔍 Busca: «algo rápido con pollo y arroz», «postre sin horno»…" value="' + filtro.texto.replace(/"/g, '&quot;') + '">' +
+      EXTRAS.inicioHTML() +
       '<div class="filtros">' +
         categorias.map(function (c) {
           return '<button class="chip' + (c === filtro.categoria ? ' activo' : '') + '" data-accion="categoria" data-valor="' + c + '">' + c + '</button>';
@@ -188,13 +189,17 @@
 
   function pintarRejilla() {
     var q = sinTildes(filtro.texto.trim());
+    var pista = EXTRAS.interpretar(q); // entiende frases como "rápido", "sin horno", "para llevar"
     var lista = RECETAS.filter(function (r) {
       if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
       if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
-      if (!q) return true;
+      if (!EXTRAS.pasaFiltros(r) || !pista.pasa(r)) return false;
+      if (!pista.palabras.length) return true;
       if (!r._busca) r._busca = sinTildes(r.nombre + ' ' + r.categoria + ' ' + r.ingredientes.map(function (i) { return i.n; }).join(' '));
-      return q.split(/\s+/).every(function (palabra) { return r._busca.indexOf(palabra) >= 0; });
+      return pista.palabras.every(function (palabra) { return r._busca.indexOf(palabra) >= 0; });
     });
+    var entendido = document.getElementById('entendido');
+    if (entendido) entendido.innerHTML = pista.etiquetas.length ? 'Entendí: ' + pista.etiquetas.map(function (t) { return '<span>' + t + '</span>'; }).join('') : '';
 
     // En la portada general, primero las recetas con foto
     if (filtro.categoria === 'Todas' && !q) {
@@ -203,7 +208,7 @@
 
     var rejilla = document.getElementById('rejilla'), pie = document.getElementById('pie-rejilla');
     if (!lista.length) {
-      rejilla.innerHTML = '<p class="vacio">No encontré recetas con ese filtro. Prueba con otra palabra.</p>';
+      rejilla.innerHTML = '<p class="vacio">No encontré recetas con esa búsqueda y esos filtros. Prueba con menos palabras o quita algún filtro.</p>';
       pie.innerHTML = '';
       return;
     }
@@ -392,7 +397,8 @@
           '<div class="panel"><h2>Lo que vas a necesitar</h2><ul class="lista">' +
             r.utensilios.map(function (u) { return '<li>' + u + '</li>'; }).join('') +
           '</ul></div>' +
-          '<a class="boton grande" href="#/cocinar/' + r.id + '/1">👩‍🍳 Empezar a cocinar</a>' +
+          '<a class="boton grande" href="#/cocinar/' + r.id + '/0">👩‍🍳 Empezar a cocinar</a>' +
+          '<div style="height:18px"></div>' + EXTRAS.recetaHTML(r) +
         '</div>' +
         '<div>' +
           (r.antes ? '<div class="panel"><h2>Antes de empezar</h2><p style="margin:0">' + r.antes + '</p></div>' : '') +
@@ -408,12 +414,18 @@
     var total = r.pasos.length;
     mantenerPantallaEncendida();
 
+    if (num === 0) { // mise en place: tener todo listo antes de empezar
+      app.innerHTML = EXTRAS.miseHTML(r);
+      return;
+    }
+
     if (num > total) {
       app.innerHTML =
         '<div class="cocina"><div class="progreso"><div style="width:100%"></div></div>' +
         '<div class="panel final"><div class="emoji">🎉</div><h2>¡Buen provecho!</h2>' +
         '<p>Terminaste: <strong>' + r.nombre + '</strong>.</p>' +
         (r.guardar ? '<div class="nota consejo" style="text-align:left"><b>🧊 Cómo guardar lo que sobre</b>' + r.guardar + '</div>' : '') +
+        EXTRAS.finalHTML(r) +
         '</div>' +
         '<div class="cocina-nav">' +
           '<a class="boton secundario" href="#/cocinar/' + r.id + '/' + total + '">← Paso anterior</a>' +
@@ -430,14 +442,14 @@
           '<span>' + r.emoji + ' ' + r.nombre + ' · Paso ' + num + ' de ' + total + '</span>' +
         '</div>' +
         '<div class="progreso"><div style="width:' + Math.round((num - 1) / total * 100) + '%"></div></div>' +
+        EXTRAS.vozHTML() +
         '<div class="panel hoja-suelta ' + direccion + '">' + pasoHTML(r, num - 1) + '<span class="folio">' + num + '</span></div>' +
         '<div class="cocina-nav">' +
-          (num > 1
-            ? '<a class="boton secundario" href="#/cocinar/' + r.id + '/' + (num - 1) + '">← Anterior</a>'
-            : '<button class="boton secundario" disabled>← Anterior</button>') +
+          '<a class="boton secundario" href="#/cocinar/' + r.id + '/' + (num - 1) + '">← Anterior</a>' +
           '<a class="boton" href="#/cocinar/' + r.id + '/' + (num + 1) + '">' + (num === total ? '¡Listo! ✓' : 'Siguiente →') + '</a>' +
         '</div>' +
       '</div>';
+    EXTRAS.alMostrarPaso();
   }
 
   function mantenerPantallaEncendida() {
@@ -544,6 +556,8 @@
     } else if (accion === 'timer-cerrar') {
       clearInterval(timer.intervalo);
       cajaTimer.hidden = true;
+    } else if (EXTRAS.acciones[accion]) {
+      EXTRAS.acciones[accion](el, valor, ruta);
     }
   });
 
@@ -588,7 +602,7 @@
       if (n >= 1 && n <= RECETAS.length) location.hash = '#/libro/' + n;
     } else if (ruta.vista === 'cocina') {
       var p = ruta.paso + salto;
-      if (p >= 1 && p <= ruta.receta.pasos.length + 1) location.hash = '#/cocinar/' + ruta.receta.id + '/' + p;
+      if (p >= 0 && p <= ruta.receta.pasos.length + 1) location.hash = '#/cocinar/' + ruta.receta.id + '/' + p;
     }
   }
 
@@ -602,15 +616,17 @@
     }
     if (partes[0] === 'receta' && receta) return { vista: 'receta', receta: receta };
     if (partes[0] === 'cocinar' && receta) {
-      var paso = Math.min(receta.pasos.length + 1, Math.max(1, parseInt(partes[2], 10) || 1));
+      var pedido = parseInt(partes[2], 10);
+      var paso = Math.min(receta.pasos.length + 1, Math.max(0, isNaN(pedido) ? 1 : pedido));
       return { vista: 'cocina', receta: receta, paso: paso };
     }
+    if (EXTRAS.vistas[partes[0]]) return { vista: 'extra', nombre: partes[0], partes: partes };
     return { vista: 'inicio' };
   }
 
   var ultima = { vista: '', numero: 0 };
 
-  function navegar() {
+  function navegar(sinSubir) {
     var ruta = rutaActual();
     // ¿Hacia dónde se pasa la página? (para la animación)
     var numero = ruta.pagina || ruta.paso || 0;
@@ -621,10 +637,19 @@
     else if (ruta.vista === 'cocina') verCocina(ruta.receta, ruta.paso, direccion);
     else if (ruta.vista === 'libro') verLibro(ruta.pagina, direccion);
     else if (ruta.vista === 'nevera') verNevera();
+    else if (ruta.vista === 'extra') EXTRAS.vistas[ruta.nombre](ruta.partes);
     else verInicio();
-    window.scrollTo(0, 0);
+    if (sinSubir !== true) window.scrollTo(0, 0);
   }
 
-  window.addEventListener('hashchange', navegar);
+  // Lo que extras.js necesita de esta app
+  window.APP = {
+    app: app, buscarReceta: buscarReceta, tarjetaHTML: tarjetaHTML, textoIngrediente: textoIngrediente,
+    porcionesDe: porcionesDe, tiempo: tiempo, iniciarTimer: iniciarTimer, pasarPagina: pasarPagina, rutaActual: rutaActual,
+    inicio: function () { visibles = POR_PAGINA; verInicio(); },
+    repintar: function () { navegar(true); }
+  };
+
+  window.addEventListener('hashchange', function () { navegar(); });
   navegar();
 })();

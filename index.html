@@ -4,9 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Paso a Paso · Recetas explicadas</title>
+  <meta name="theme-color" content="#c2552d">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icono.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <nav class="menu" aria-label="Secciones">
+    <a href="#/">🏠<span>Recetas</span></a>
+    <a href="#/nevera">🧊<span>Nevera</span></a>
+    <a href="#/plan">📅<span>Plan</span></a>
+    <a href="#/compras">🛒<span>Compras</span></a>
+    <a href="#/aprender">🎓<span>Aprender</span></a>
+    <a href="#/progreso"><b id="menu-nivel">🌱 0</b><span>Mi progreso</span></a>
+    <button data-accion="letra" title="Cambiar tamaño de letra">A<span>Letra</span></button>
+  </nav>
   <main id="app"></main>
   <div id="temporizador" class="temporizador" hidden></div>
 
@@ -21,6 +33,7 @@
   <script src="cocinas-2.js"></script>
   <script src="fotos-familias.js"></script>
   <script src="creditos.js"></script>
+  <script src="extras.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
