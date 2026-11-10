@@ -312,15 +312,16 @@ a { color: var(--acento); }
   transform: translateX(-50%);
   background: var(--texto);
   color: var(--fondo);
-  border-radius: 999px;
-  padding: 10px 12px 10px 20px;
+  border-radius: 22px;
+  padding: 6px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, .3);
   max-width: calc(100vw - 24px);
-  z-index: 10;
+  max-height: 40vh; overflow-y: auto;
 }
+.temporizador .tim { display: flex; align-items: center; gap: 12px; padding: 4px 6px 4px 14px; border-radius: 999px; }
 .temporizador[hidden] { display: none; }
 .temporizador .reloj { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .temporizador .etiqueta { font-size: .85rem; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -333,8 +334,8 @@ a { color: var(--acento); }
   font-weight: 600;
   white-space: nowrap;
 }
-.temporizador.terminado { background: var(--acento); color: var(--sobre-acento); animation: latido .7s infinite alternate; }
-@keyframes latido { to { transform: translateX(-50%) scale(1.06); } }
+.temporizador .tim.terminado { background: var(--acento); color: var(--sobre-acento); animation: latido .7s infinite alternate; }
+@keyframes latido { to { transform: scale(1.04); } }
 
 @media (max-width: 760px) {
   .columnas { grid-template-columns: 1fr; }
@@ -841,3 +842,14 @@ a, button, input, select, textarea, label, summary { touch-action: manipulation;
 }
 
 @media (max-width: 760px) { .buscar .buscador { padding: 14px 92px 14px 14px; font-size: 1rem; } }
+
+/* Aviso de que no hay internet */
+#aviso-red { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 8px 14px; text-align: center; font-size: .88rem; font-weight: 600; background: var(--acento); color: var(--sobre-acento); }
+#aviso-red[hidden] { display: none; }
+@media (max-width: 760px) { #aviso-red { bottom: calc(62px + env(safe-area-inset-bottom)); } }
+
+.accion.mias { background: linear-gradient(135deg, #8a4515, #5e2f0e); }
+.accion.mercado { background: linear-gradient(135deg, #55501f, #3a3714); }
+.mia-campo { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; font-weight: 600; font-size: .9rem; flex: 1; min-width: 110px; }
+.mia-fila { display: flex; gap: 10px; flex-wrap: wrap; }
+.mia-form textarea { min-height: 120px; resize: vertical; }

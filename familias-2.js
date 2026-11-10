@@ -523,7 +523,7 @@
     { s: 'espinaca', ing: [i(2, 'taza', 'de espinaca')], prep: 'Saltea la espinaca 1 minuto en la sartén hasta que se marchite. Escúrrela apretándola con una cuchara y sácala a un plato.', m: 1 },
     { s: 'tomate', ing: [i(1, '', 'tomate|tomates')], prep: 'Pica el tomate en cuadritos sin las semillas (tienen mucha agua).' },
     { s: 'cebolla', ing: [i(0.5, '', 'cebolla cabezona')], prep: 'Pica la cebolla en cuadritos y sofríela 3 minutos en la sartén hasta que esté transparente. Sácala a un plato.', m: 3 },
-    { s: 'maíz', ing: [i(0.5, 'taza', 'de maíz tierno')], prep: 'Escurre bien el maíz.' },
+    { s: 'maíz', ing: [i(0.5, 'taza', 'de maíz tierno')], prep: 'Escurre bien el maíz y sécalo con papel de cocina para que no suelte agua.' },
     { s: 'tocineta', ing: [i(3, '', 'tira de tocineta|tiras de tocineta')], prep: 'Pica la tocineta y dórala 4 minutos en la sartén, sin aceite, hasta que esté crujiente. Sácala a un plato con papel.', m: 4 },
     { s: 'pimentón', ing: [i(0.5, '', 'pimentón')], prep: 'Pica el pimentón en cuadritos y sofríelo 3 minutos. Sácalo a un plato.', m: 3 },
     { s: 'salchicha', ing: [i(2, '', 'salchicha|salchichas')], prep: 'Corta las salchichas en rodajas y dóralas 3 minutos en la sartén. Sácalas a un plato.', m: 3 },

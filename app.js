@@ -28,7 +28,7 @@
   var TONOS = { 'Básicos': 38, 'Desayunos': 46, 'Platos fuertes': 22, 'Acompañamientos': 56, 'Sopas': 62, 'Ensaladas': 74, 'Comida japonesa': 12, 'Cocina italiana': 28, 'Cocina española': 34, 'Cocina mexicana': 68, 'Cocina peruana': 18, 'Cocina argentina': 30, 'Cocina brasileña': 72, 'Cocina boliviana': 24, 'Cocina venezolana': 42, 'Sándwiches y arepas': 33, 'Pasabocas': 50, 'Postres': 15, 'Bebidas': 58 };
 
   // El libro va ordenado por capítulos (categorías); dentro de cada uno, primero las recetas con foto
-  var CAPITULOS = ['Básicos', 'Desayunos', 'Platos fuertes', 'Acompañamientos', 'Sopas', 'Ensaladas', 'Comida japonesa', 'Cocina italiana', 'Cocina española', 'Cocina mexicana', 'Cocina peruana', 'Cocina argentina', 'Cocina brasileña', 'Cocina boliviana', 'Cocina venezolana', 'Sándwiches y arepas', 'Pasabocas', 'Postres', 'Bebidas'];
+  var CAPITULOS = ['Mis recetas', 'Básicos', 'Desayunos', 'Platos fuertes', 'Acompañamientos', 'Sopas', 'Ensaladas', 'Comida japonesa', 'Cocina italiana', 'Cocina española', 'Cocina mexicana', 'Cocina peruana', 'Cocina argentina', 'Cocina brasileña', 'Cocina boliviana', 'Cocina venezolana', 'Sándwiches y arepas', 'Pasabocas', 'Postres', 'Bebidas'];
   RECETAS.sort(function (x, y) {
     return (CAPITULOS.indexOf(x.categoria) - CAPITULOS.indexOf(y.categoria)) || ((x.gen ? 1 : 0) - (y.gen ? 1 : 0));
   });
@@ -352,6 +352,8 @@
       '<div class="acciones">' +
         '<a class="accion nevera" href="#/nevera"><span>🧊</span><div><strong>¿Qué tengo en la nevera?</strong><small>Llénala y te digo qué puedes cocinar</small></div></a>' +
         '<a class="accion sorpresa" href="#/libro/1"><span>📖</span><div><strong>Hojear el libro</strong><small>Pasa las páginas, receta por receta</small></div></a>' +
+        '<a class="accion mias" href="#/mis-recetas"><span>✍️</span><div><strong>Mis recetas</strong><small>Escribe las tuyas y cocínalas paso a paso</small></div></a>' +
+        '<a class="accion mercado" href="#/compras"><span>🛒</span><div><strong>Mi mercado</strong><small>Lista, tiendas y precios en tu ciudad</small></div></a>' +
       '</div>' +
       EXTRAS.inicioHTML() +
       '<div class="filtros">' +
@@ -710,38 +712,43 @@
   }
 
   // ---------- Temporizador flotante ----------
-  var timer = { fin: 0, restante: 0, etiqueta: '', intervalo: null, pausado: false, terminado: false };
+  var timers = [], timerId = 0, timerIntervalo = null;
 
+  // Varios temporizadores a la vez, cada uno con su nombre
   function iniciarTimer(minutos, etiqueta) {
-    clearInterval(timer.intervalo);
-    timer.restante = minutos * 60;
-    timer.fin = Date.now() + timer.restante * 1000;
-    timer.etiqueta = etiqueta;
-    timer.pausado = false;
-    timer.terminado = false;
-    timer.intervalo = setInterval(tic, 250);
+    var seg = Math.max(1, Math.round(minutos * 60)), nombre = etiqueta || 'Temporizador';
+    var repetido = timers.filter(function (t) { return t.etiqueta === nombre && !t.terminado; })[0];
+    if (repetido) { repetido.total = repetido.restante = seg; repetido.fin = Date.now() + seg * 1000; repetido.pausado = false; }
+    else timers.push({ id: ++timerId, total: seg, restante: seg, fin: Date.now() + seg * 1000, etiqueta: nombre, pausado: false, terminado: false });
+    if (!timerIntervalo) timerIntervalo = setInterval(tic, 250);
     pintarTimer();
   }
 
   function tic() {
-    if (timer.pausado || timer.terminado) return;
-    timer.restante = Math.max(0, Math.round((timer.fin - Date.now()) / 1000));
-    if (timer.restante === 0) {
-      timer.terminado = true;
-      sonar();
-    }
-    pintarTimer();
+    var cambio = false, ahora = Date.now();
+    timers.forEach(function (t) {
+      if (t.pausado || t.terminado) return;
+      var r = Math.max(0, Math.round((t.fin - ahora) / 1000));
+      if (r !== t.restante) { t.restante = r; cambio = true; }
+      if (r === 0) {
+        t.terminado = true; cambio = true; sonar();
+        if (window.speechSynthesis && window.EXTRAS && EXTRAS.vozActiva && EXTRAS.vozActiva()) { try { speechSynthesis.speak(new SpeechSynthesisUtterance('Ya terminó el temporizador de ' + t.etiqueta.replace(/^Paso \d+: /, ''))); } catch (e) { /* sin voz */ } }
+      }
+    });
+    if (cambio) pintarTimer();
   }
 
   function pintarTimer() {
+    if (!timers.length) { cajaTimer.hidden = true; clearInterval(timerIntervalo); timerIntervalo = null; return; }
     cajaTimer.hidden = false;
-    cajaTimer.classList.toggle('terminado', timer.terminado);
-    var m = Math.floor(timer.restante / 60), s = timer.restante % 60;
-    cajaTimer.innerHTML =
-      '<span class="reloj">' + (timer.terminado ? '⏰ ¡Tiempo!' : m + ':' + (s < 10 ? '0' : '') + s) + '</span>' +
-      '<span class="etiqueta">' + timer.etiqueta + '</span>' +
-      (timer.terminado ? '' : '<button data-accion="timer-pausa">' + (timer.pausado ? 'Seguir' : 'Pausar') + '</button>') +
-      '<button data-accion="timer-cerrar">' + (timer.terminado ? 'Listo' : '✕') + '</button>';
+    cajaTimer.innerHTML = timers.map(function (t) {
+      var m = Math.floor(t.restante / 60), s = t.restante % 60;
+      return '<div class="tim' + (t.terminado ? ' terminado' : '') + '">' +
+        '<span class="reloj">' + (t.terminado ? '⏰ ¡Tiempo!' : m + ':' + (s < 10 ? '0' : '') + s) + '</span>' +
+        '<span class="etiqueta">' + t.etiqueta + '</span>' +
+        (t.terminado ? '' : '<button data-accion="timer-pausa" data-id="' + t.id + '">' + (t.pausado ? 'Seguir' : 'Pausar') + '</button>') +
+        '<button data-accion="timer-cerrar" data-id="' + t.id + '" aria-label="Quitar temporizador">' + (t.terminado ? 'Listo' : '✕') + '</button></div>';
+    }).join('');
   }
 
   function sonar() {
@@ -848,12 +855,15 @@
     } else if (accion === 'timer') {
       iniciarTimer(Number(el.dataset.min), el.dataset.etiqueta);
     } else if (accion === 'timer-pausa') {
-      timer.pausado = !timer.pausado;
-      if (!timer.pausado) timer.fin = Date.now() + timer.restante * 1000;
+      timers.forEach(function (t) {
+        if (String(t.id) !== el.dataset.id) return;
+        t.pausado = !t.pausado;
+        if (!t.pausado) t.fin = Date.now() + t.restante * 1000;
+      });
       pintarTimer();
     } else if (accion === 'timer-cerrar') {
-      clearInterval(timer.intervalo);
-      cajaTimer.hidden = true;
+      timers = timers.filter(function (t) { return String(t.id) !== el.dataset.id; });
+      pintarTimer();
     } else if (EXTRAS.acciones[accion]) {
       EXTRAS.acciones[accion](el, valor, ruta);
     }
@@ -953,6 +963,16 @@
   window.APP = {
     app: app, buscarReceta: buscarReceta, tarjetaHTML: tarjetaHTML, textoIngrediente: textoIngrediente,
     porcionesDe: porcionesDe, tiempo: tiempo, iniciarTimer: iniciarTimer, pasarPagina: pasarPagina, rutaActual: rutaActual,
+    // Lo que falta de cada temporizador, dicho en palabras (para el modo manos libres)
+    timersTexto: function () {
+      var vivos = timers.filter(function (t) { return !t.terminado; });
+      if (!timers.length) return 'No tienes temporizadores.';
+      return timers.map(function (t) {
+        if (t.terminado) return t.etiqueta + ': ya terminó.';
+        var m = Math.floor(t.restante / 60), s = t.restante % 60;
+        return t.etiqueta + ': faltan ' + (m ? m + (m === 1 ? ' minuto' : ' minutos') : '') + (m && s ? ' y ' : '') + (s || !m ? s + ' segundos' : '') + '.';
+      }).join(' ');
+    },
     inicio: function () { visibles = POR_PAGINA; verInicio(); },
     repintar: function () { navegar(true); }
   };

@@ -235,10 +235,22 @@ var EXTRAS = (function () {
       '<div class="estrellas">' + estrellasHTML(r.id) + '</div>' +
       '<textarea class="nota-propia" data-nota="' + r.id + '" placeholder="Tus notas: qué cambiarías, cómo te quedó…">' + esc(nota.texto || '') + '</textarea>' +
       '<div class="fila-botones"><select id="dia-plan">' + DIAS.map(function (d) { return '<option>' + d + '</option>'; }).join('') + '</select>' +
-      '<button class="boton secundario" data-accion="al-plan" data-id="' + r.id + '">📅 Agregar al plan</button></div></div>' +
+      '<button class="boton secundario" data-accion="al-plan" data-id="' + r.id + '">📅 Agregar al plan</button>' +
+      '<button class="boton secundario" data-accion="receta-whatsapp" data-id="' + r.id + '">💬 Compartir por WhatsApp</button></div></div>' +
       '<div class="panel"><h2>Dieta y alérgenos</h2><p style="margin:0 0 8px">' + (t.veg ? '🥬 Vegetariana. ' : '') + (al.length ? 'Contiene: <strong>' + al.join(', ') + '</strong>.' : 'No detecté alérgenos comunes en los ingredientes.') + '</p>' +
       '<p class="pista izq" style="margin:0">Calculado automáticamente a partir de la lista de ingredientes. Si tienes una alergia, revisa las etiquetas de cada producto.</p></div>' +
       (su.length ? '<div class="panel"><h2>🔁 Si te falta algo</h2>' + su.map(function (s) { return '<div class="sust"><strong>' + s[1] + '</strong><span>→ ' + s[2] + '</span></div>'; }).join('') + '</div>' : '');
+  }
+  // La receta como texto, para mandarla por WhatsApp
+  function textoReceta(r) {
+    var limpia = function (s) { return String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&quot;/g, '"'); };
+    var n = A().porcionesDe(r), f = n / r.porciones;
+    var out = [r.emoji + ' *' + limpia(r.nombre) + '*', '⏱ ' + A().tiempo(r.prep + r.coccion) + ' · 🍽 ' + n + (n === 1 ? ' porción' : ' porciones'), '', '*Ingredientes*'];
+    r.ingredientes.forEach(function (i) { out.push('• ' + limpia(A().textoIngrediente(i, f))); });
+    out.push('', '*Paso a paso*');
+    r.pasos.forEach(function (p, k) { out.push((k + 1) + '. ' + (/^Paso \d+$/.test(p.t) ? '' : limpia(p.t) + ': ') + limpia(p.d)); });
+    if (!r.mia) out.push('', 'Con fotos y modo cocinar: ' + location.origin + location.pathname + '#/receta/' + r.id);
+    return out.join('\n');
   }
   function finalHTML(r) {
     return '<div class="fila-botones centro"><button class="boton" data-accion="cocinada" data-id="' + r.id + '">✅ Marcar como cocinada</button></div>' +
@@ -262,13 +274,25 @@ var EXTRAS = (function () {
   function vozHTML() {
     return '<div class="barra-voz"><button class="chip" data-accion="leer">🔊 Leer este paso</button>' +
       (Rec ? '<button class="chip' + (voz.activa ? ' activo' : '') + '" data-accion="voz">🎤 ' + (voz.activa ? 'Escuchando… (tocar para apagar)' : 'Manos libres') + '</button>' : '') +
-      (voz.activa ? '<span class="pista izq" style="margin:0">Di: «siguiente», «anterior», «repetir», «temporizador 10 minutos»</span>' : '') + '</div>';
+      (voz.activa ? '<span class="pista izq" style="margin:0">Di: «siguiente», «anterior», «repetir», «ingredientes», «cuánto falta», «temporizador 10 minutos para el arroz»</span>' : '') + '</div>';
   }
   function textoPaso() {
     var ruta = A().rutaActual();
     if (ruta.vista !== 'cocina' || !ruta.paso || ruta.paso > ruta.receta.pasos.length) return '';
     var p = ruta.receta.pasos[ruta.paso - 1], limpia = function (s) { return String(s || '').replace(/<[^>]+>/g, ''); };
     return 'Paso ' + ruta.paso + '. ' + p.t + '. ' + limpia(p.d) + (p.s ? ' Sabrás que va bien si: ' + limpia(p.s) : '') + (p.e ? ' Cuidado: ' + limpia(p.e) : '');
+  }
+  function hablar(t) {
+    if (!window.speechSynthesis || !t) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(t); u.lang = 'es-ES'; u.rate = 0.95;
+    speechSynthesis.speak(u);
+  }
+  function textoIngredientes() {
+    var ruta = A().rutaActual();
+    if (ruta.vista !== 'cocina' || !ruta.receta) return '';
+    var f = A().porcionesDe(ruta.receta) / ruta.receta.porciones;
+    return 'Ingredientes. ' + ruta.receta.ingredientes.map(function (i) { return A().textoIngrediente(i, f).replace(/<[^>]+>/g, '').replace(/&amp;/g, 'y'); }).join('. ');
   }
   function leer() {
     if (!window.speechSynthesis) return;
@@ -284,9 +308,13 @@ var EXTRAS = (function () {
     var t = sinT(texto), m;
     if ((m = /(temporizador|timer|alarma|cronometro)\D*(\d+|un[oa]?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce|quince|veinte|treinta|cuarenta)/.exec(t))) {
       var n = parseInt(m[2], 10) || NUM[m[2]];
-      if (n) A().iniciarTimer(n, 'Temporizador por voz');
+      var cola = t.slice(t.indexOf(m[0]) + m[0].length), nom = /^\s*(?:minutos?|min|segundos?)?\s*(?:para|de|del)\s+(?:el|la|los|las)?\s*([a-z ]{2,24})/.exec(cola);
+      var nombreT = nom ? nom[1].trim() : '';
+      if (n) A().iniciarTimer(n, nombreT ? nombreT.charAt(0).toUpperCase() + nombreT.slice(1) : 'Temporizador por voz');
     } else if (/siguiente|proximo|adelante|continua/.test(t)) A().pasarPagina(1);
     else if (/anterior|atras|volver/.test(t)) A().pasarPagina(-1);
+    else if (/cuanto (falta|queda)|que tiempo|como va/.test(t)) hablar(A().timersTexto());
+    else if (/ingredientes/.test(t)) hablar(textoIngredientes());
     else if (/repet|repite|leer|lee|otra vez/.test(t)) leer();
     else if (/silencio|callate|para de leer/.test(t) && window.speechSynthesis) speechSynthesis.cancel();
   }
@@ -294,7 +322,7 @@ var EXTRAS = (function () {
     if (!Rec) return;
     if (voz.activa) { voz.activa = false; try { voz.rec.stop(); } catch (e) { /* ya detenido */ } return; }
     voz.rec = new Rec();
-    voz.rec.lang = 'es-ES'; voz.rec.continuous = true; voz.rec.interimResults = false;
+    voz.rec.lang = 'es-CO'; voz.rec.continuous = true; voz.rec.interimResults = false;
     voz.rec.onresult = function (ev) { orden(ev.results[ev.results.length - 1][0].transcript); };
     voz.rec.onend = function () { if (voz.activa) { try { voz.rec.start(); } catch (e) { /* reintento */ } } };
     voz.rec.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { voz.activa = false; A().repintar(); } };
@@ -313,13 +341,31 @@ var EXTRAS = (function () {
       '<div class="fila-botones"><button class="boton" data-accion="plan-sugerir">✨ Proponerme una semana</button>' +
       (total ? '<a class="boton secundario" href="#/compras">🛒 Ver lista de compras</a><button class="boton secundario" data-accion="plan-vaciar">Vaciar plan</button>' : '') + '</div>' +
       '<p class="pista izq">La propuesta respeta los filtros que tengas activos en la portada (tiempo, dieta, alérgenos, equipo).</p></div>' +
+      (total ? presupuestoHTML() : '') +
       '<div class="semana">' + DIAS.map(function (d) {
         var rs = (plan[d] || []).map(function (id) { return A().buscarReceta(id); }).filter(Boolean);
         return '<div class="dia"><h3>' + d + '</h3>' + (rs.length ? rs.map(function (r) {
-          return '<div class="plato"><a href="#/receta/' + r.id + '">' + r.emoji + ' ' + r.nombre + '</a><small>⏱ ' + A().tiempo(r.prep + r.coccion) + '</small>' +
+          var cr = costoReceta(r);
+          return '<div class="plato"><a href="#/receta/' + r.id + '">' + r.emoji + ' ' + r.nombre + '</a><small>⏱ ' + A().tiempo(r.prep + r.coccion) + (cr.total ? ' · ≈ ' + cop(cr.total) : '') + '</small>' +
             '<button data-accion="plan-quitar" data-dia="' + d + '" data-id="' + r.id + '" aria-label="Quitar">✕</button></div>';
         }).join('') : '<p class="suave" style="margin:0">Nada todavía</p>') + '</div>';
       }).join('') + '</div>';
+  }
+  // Idea de lo que cuesta cada receta: suma un precio por cada ingrediente (los míos o la referencia)
+  function costoReceta(r) {
+    var t = { total: 0, sin: 0 };
+    r.ingredientes.forEach(function (ing) {
+      if (/^Opcional/.test(ing.nota || '') && ing.c == null) return;
+      var d = precioDe(pkDe(nombreProducto(ing.n)));
+      if (d) t.total += d.p; else t.sin++;
+    });
+    return t;
+  }
+  function presupuestoHTML() {
+    var est = estimarLista(), porcs = 0, dias = DIAS.filter(function (d) { return (plan[d] || []).length; }).length;
+    return '<div class="panel"><h2>💰 Presupuesto de la semana</h2>' +
+      '<p class="completa" style="margin:0">Comprar todo lo de este plan costaría <strong>≈ ' + cop(est.total) + '</strong>' + (dias ? ' <small>(unos ' + cop(est.total / dias) + ' por día con plan)</small>' : '') + '.</p>' +
+      '<p class="pista izq">Cuenta un precio por producto distinto, no por cantidad exacta. Usa los precios que tú anotaste y, si no hay, una referencia aproximada' + (est.sin ? '; ' + est.sin + ' productos no tienen precio y no suman' : '') + '. Sirve para tener una idea, no para cuadrar centavos. <a href="#/compras">Anota los reales en la lista</a> y se vuelve más exacto.</p></div>';
   }
   function sugerirSemana() {
     // Solo platos que sirven de comida principal (ni salsas, ni postres, ni bebidas, ni pasabocas)
@@ -373,6 +419,40 @@ var EXTRAS = (function () {
     var a = s.split(/\s+/)[0] || '';
     if (a.length > 4 && /[aeiou]s$/.test(a)) a = a.slice(0, -1);
     return a;
+  }
+  // Precios de REFERENCIA: cifras aproximadas y NO oficiales de productos comunes en Colombia (pueden estar desactualizadas).
+  // Solo sirven para dar una idea cuando todavía no has anotado el precio real. Los tuyos siempre mandan.
+  var REF_LISTA = [
+    ['Papa', 2300, 'la libra'], ['Tomate', 3000, 'la libra'], ['Cebolla cabezona', 2500, 'la libra'], ['Cebolla larga', 3000, 'la libra'], ['Zanahoria', 1800, 'la libra'],
+    ['Plátano', 1200, 'la unidad'], ['Yuca', 1800, 'la libra'], ['Limón', 3500, 'la libra'], ['Aguacate', 3500, 'la unidad'], ['Banano', 2200, 'la libra'],
+    ['Cilantro', 1500, 'el atado'], ['Ajo', 1000, 'la cabeza'], ['Pimentón', 1500, 'la unidad'], ['Lechuga', 3000, 'la unidad'], ['Naranja', 2000, 'la libra'],
+    ['Pollo', 8000, 'la libra'], ['Carne de res', 17000, 'la libra'], ['Carne molida', 16000, 'la libra'], ['Cerdo', 14000, 'la libra'], ['Pescado', 14000, 'la libra'],
+    ['Salchicha', 9000, 'el paquete'], ['Atún', 5500, 'la lata'], ['Chorizo', 8000, 'el paquete'],
+    ['Leche', 4800, 'el litro'], ['Huevo', 700, 'la unidad'], ['Queso', 14000, 'la libra'], ['Mantequilla', 6500, 'la barra'], ['Yogur', 7500, 'el litro'],
+    ['Arroz', 3300, 'la libra'], ['Aceite', 14000, 'el litro'], ['Sal', 2200, 'el kilo'], ['Azúcar', 4800, 'el kilo'], ['Panela', 3200, 'la libra'], ['Café', 12000, 'la libra'],
+    ['Chocolate', 11000, 'la libra'], ['Lenteja', 4500, 'la libra'], ['Fríjol', 7500, 'la libra'], ['Pasta', 3200, 'el paquete'], ['Harina de trigo', 4500, 'el kilo'],
+    ['Harina para arepas', 3800, 'el paquete'], ['Avena', 4000, 'el paquete'], ['Pan', 6500, 'la bolsa'], ['Galleta', 4000, 'el paquete'],
+    ['Papel higiénico', 18000, 'el paquete x12'], ['Jabón de baño', 3000, 'la unidad'], ['Detergente', 9000, 'el kilo'], ['Jabón de loza', 4500, 'la unidad'],
+    ['Crema dental', 6500, 'el tubo'], ['Bolsas de basura', 5000, 'el paquete']
+  ];
+  var REF = {};
+  REF_LISTA.forEach(function (x) { REF[pkDe(x[0])] = { p: x[1], u: x[2] }; });
+  // Mejor precio que conozco de un producto: el tuyo en la tienda actual, el más barato que anotaste, o la referencia
+  function precioDe(pk) {
+    var p = precios[pk];
+    if (p && tiendaActual && p[tiendaActual]) return { p: p[tiendaActual].p, tipo: 'mio' };
+    if (p && Object.keys(p).length) return { p: Math.min.apply(null, Object.keys(p).map(function (k) { return p[k].p; })), tipo: 'mio' };
+    if (REF[pk]) return { p: REF[pk].p, tipo: 'ref' };
+    return null;
+  }
+  function estimarLista() {
+    var r = { total: 0, mio: 0, ref: 0, sin: 0 };
+    todosLosItems().forEach(function (it) {
+      var d = precioDe(it.pk);
+      if (!d) { r.sin++; return; }
+      r.total += d.p; r[d.tipo]++;
+    });
+    return r;
   }
   function nombreProducto(n) { return n.split('|')[0].replace(/^de /, '').replace(/\s*\(.*?\)/g, '').trim(); }
   function pasilloDe(nombre) {
@@ -435,7 +515,12 @@ var EXTRAS = (function () {
     document.querySelectorAll('[data-pista]').forEach(function (el) {
       var pk = el.dataset.pista, p = precios[pk], t = pistaPrecio(pk);
       var barata = p && cur && p[cur] && Object.keys(p).length > 1 && p[cur].p === Math.min.apply(null, Object.keys(p).map(function (k) { return p[k].p; }));
-      el.innerHTML = (t ? '💲 ' + t : '') + (barata ? (t ? ' · ' : '') + '✅ aquí es lo más barato que he visto' : '');
+      var ref = REF[pk], sinMio = !(p && cur && p[cur]);
+      var partes = [];
+      if (t) partes.push('💲 ' + t);
+      if (barata) partes.push('✅ aquí es lo más barato que he visto');
+      if (ref && sinMio) partes.push('≈ ' + cop(ref.p) + ' ' + ref.u + ' (referencia aproximada)');
+      el.innerHTML = partes.join(' · ');
     });
     var r = document.getElementById('resumen-mercado');
     if (r) r.innerHTML = resumenHTML();
@@ -444,7 +529,9 @@ var EXTRAS = (function () {
   function resumenHTML() {
     var items = todosLosItems();
     if (!items.length) return '';
-    if (!tiendas.length) return '<p class="suave" style="margin:0">Agrega tus tiendas arriba y anota lo que pagas: con eso te digo cuánto te cuesta este mercado en cada una.</p>';
+    var est = estimarLista(), estHTML = est.total
+      ? '<p class="completa" style="margin:0 0 12px">🧮 Idea del total: <strong>≈ ' + cop(est.total) + '</strong> <small>(' + est.mio + ' con tus precios, ' + est.ref + ' con precio de referencia' + (est.sin ? ', ' + est.sin + ' sin precio' : '') + ')</small></p>' : '';
+    if (!tiendas.length) return estHTML + '<p class="suave" style="margin:0">Agrega tus tiendas arriba y anota lo que pagas: con eso te digo cuánto te cuesta este mercado en cada una.</p>';
     var filas = tiendas.map(function (t) {
       var total = 0, con = 0;
       items.forEach(function (it) { var p = precios[it.pk] && precios[it.pk][t.n]; if (p) { total += p.p; con++; } });
@@ -459,7 +546,7 @@ var EXTRAS = (function () {
     } else {
       conclusion = '<p class="pista izq" style="margin:10px 0 0">Todavía no puedo decirte cuál tienda conviene: para comparar necesito el precio de todos los productos en cada tienda. Entre más anotes, mejor te aconsejo.</p>';
     }
-    return '<table class="tabla-tiendas"><tr><th>Tienda</th><th>Suma conocida</th><th>Faltan</th></tr>' + filas.map(function (f) {
+    return estHTML + '<table class="tabla-tiendas"><tr><th>Tienda</th><th>Suma conocida</th><th>Faltan</th></tr>' + filas.map(function (f) {
       return '<tr' + (f.t.n === tiendaActual ? ' class="actual"' : '') + '><td>' + esc(f.t.n) + (f.t.zona ? '<small>' + esc(f.t.zona) + '</small>' : '') + '</td><td>' + (f.con ? cop(f.total) : '—') + '</td><td>' + (f.falta ? f.falta + ' de ' + items.length : '✅ ninguno') + '</td></tr>';
     }).join('') + '</table>' + conclusion +
       '<p class="pista izq">Son los precios que tú anotaste y pueden haber cambiado. Cada precio es el de ese producto en la cantidad que anotaste.</p>';
@@ -769,9 +856,129 @@ var EXTRAS = (function () {
         '<div class="fila-botones"><button class="boton" data-accion="perfil-exportar">📋 Copiar mi código</button></div>' +
         '<textarea class="codigo" id="codigo-salida" readonly placeholder="Aquí aparece tu código…"></textarea>' +
         '<h3 style="margin:16px 0 6px;font-size:1rem">¿Ya tienes un código?</h3><textarea class="codigo" id="codigo-entrada" placeholder="Pega aquí tu código…"></textarea>' +
-        '<div class="fila-botones"><button class="boton secundario" data-accion="perfil-importar">Recuperar mis datos</button></div><p class="pista izq" id="aviso-perfil"></p></div>';
+        '<div class="fila-botones"><button class="boton secundario" data-accion="perfil-importar">Recuperar mis datos</button></div><p class="pista izq" id="aviso-perfil"></p></div>' + offlineHTML();
   }
+  // ---- Modo sin internet: guardar todas las fotos en el celular
+  var CACHE_SW = 'paso-a-paso-v6'; // el mismo nombre que usa sw.js
+  function offlineHTML() {
+    var hay = 'caches' in window;
+    return '<div class="panel"><h2>📴 Usar sin internet</h2><p class="suave">Las recetas ya funcionan sin conexión. De las fotos solo se guardan las que ya viste; aquí puedes bajarlas todas (unos 30 MB, mejor con wifi).</p>' +
+      (hay ? '<div class="fila-botones"><button class="boton secundario" data-accion="offline-bajar">⬇️ Guardar todas las fotos</button></div>' : '<p class="pista izq">Tu navegador no permite guardar para usar sin internet.</p>') +
+      '<p class="pista izq" id="aviso-offline"></p></div>';
+  }
+  var bajando = false;
+  function bajarFotos() {
+    var aviso = function (t) { var el = document.getElementById('aviso-offline'); if (el) el.textContent = t; };
+    if (bajando || !('caches' in window)) return;
+    if (!navigator.onLine) { aviso('Ahora no hay internet. Hazlo cuando tengas conexión.'); return; }
+    bajando = true;
+    var claves = typeof CREDITOS !== 'undefined' ? Object.keys(CREDITOS) : [], hechas = 0, malas = 0, i = 0;
+    caches.open(CACHE_SW).then(function (c) {
+      function uno() {
+        if (i >= claves.length) return Promise.resolve();
+        var url = 'fotos/' + claves[i++] + '.jpg';
+        return c.match(url).then(function (ya) {
+          return ya || fetch(url).then(function (r) { if (!r.ok) throw 0; return c.put(url, r); });
+        }).then(function () { hechas++; }, function () { malas++; }).then(function () {
+          aviso('Guardando fotos… ' + (hechas + malas) + ' de ' + claves.length);
+          return uno();
+        });
+      }
+      return Promise.all([uno(), uno(), uno(), uno()]);
+    }).then(function () {
+      aviso(malas ? '✅ Guardé ' + hechas + ' fotos; ' + malas + ' no se pudieron bajar. Inténtalo otra vez.' : '✅ Listo: ya tienes las ' + hechas + ' fotos para usar sin internet.');
+    }, function () { aviso('No pude guardar las fotos (¿poco espacio?).'); }).then(function () { bajando = false; });
+  }
+  // Aviso cuando se pierde la conexión
+  function avisoRed() {
+    var el = document.getElementById('aviso-red');
+    if (!el) { el = document.createElement('div'); el.id = 'aviso-red'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = navigator.onLine ? '' : '📴 Sin internet: puedes seguir cocinando con lo que ya está guardado.';
+    el.hidden = navigator.onLine;
+  }
+  window.addEventListener('online', avisoRed); window.addEventListener('offline', avisoRed);
+  if (!navigator.onLine) setTimeout(avisoRed, 0);
   function avisoPerfil(t) { var el = document.getElementById('aviso-perfil'); if (el) el.textContent = t; }
+
+  // ================================================================ MIS RECETAS (las escribe la persona)
+  var misRecetas = mem.leer('misRecetas', []);
+  var UNI = {
+    g: 'g', gr: 'g', gramo: 'g', gramos: 'g', kg: 'kg', kilo: 'kilo|kilos', kilos: 'kilo|kilos', ml: 'ml', l: 'l', litro: 'litro|litros', litros: 'litro|litros',
+    libra: 'libra|libras', libras: 'libra|libras', lb: 'libra|libras', taza: 'taza|tazas', tazas: 'taza|tazas', cucharada: 'cucharada|cucharadas', cucharadas: 'cucharada|cucharadas',
+    cucharadita: 'cucharadita|cucharaditas', cucharaditas: 'cucharadita|cucharaditas', lata: 'lata|latas', latas: 'lata|latas', paquete: 'paquete|paquetes', paquetes: 'paquete|paquetes',
+    pizca: 'pizca|pizcas', pizcas: 'pizca|pizcas', vaso: 'vaso|vasos', vasos: 'vaso|vasos'
+  };
+  var FRAC = { '½': 0.5, '¼': 0.25, '¾': 0.75, '⅓': 1 / 3 };
+  function aNumero(t) {
+    t = t.trim();
+    if (FRAC[t] != null) return FRAC[t];
+    var m = /^(\d+)\s+(\d+)\/(\d+)$/.exec(t); if (m) return +m[1] + (+m[2]) / (+m[3]);
+    m = /^(\d+)\/(\d+)$/.exec(t); if (m) return (+m[1]) / (+m[2]);
+    return parseFloat(t.replace(',', '.'));
+  }
+  // "2 tazas de arroz" -> {c:2, u:'taza|tazas', n:'de arroz'}; "sal al gusto" -> {c:null, n:'sal al gusto'}
+  function ingredienteDe(linea) {
+    var s = linea.replace(/^[-•*\s]+/, '').trim();
+    var m = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:[.,]\d+)?|[½¼¾⅓])\s*(.*)$/.exec(s);
+    if (!m) return { c: null, u: '', n: esc(s) };
+    var c = aNumero(m[1]), resto = m[2], u = '', partes = resto.split(/\s+/), clave = sinT(partes[0] || '');
+    if (UNI[clave]) { u = UNI[clave]; resto = partes.slice(1).join(' '); resto = resto.replace(/^de\s+/i, ''); resto = 'de ' + resto; }
+    return { c: c || 1, u: u, n: esc(resto) };
+  }
+  function pasoDe(linea, i) {
+    var s = linea.replace(/^\s*(?:\d+[.)]\s*|[-•*]\s*)/, '').trim(), p = { t: 'Paso ' + (i + 1), d: esc(s) };
+    var h = /(\d+)\s*horas?/.exec(sinT(s)), mi = /(\d+)\s*(?:min|minutos)/.exec(sinT(s));
+    var min = (h ? +h[1] * 60 : 0) + (mi ? +mi[1] : 0);
+    if (min > 0 && min <= 240) p.m = min;
+    return p;
+  }
+  function construirMia(f, id) {
+    var ings = f.ingredientes.split('\n').filter(function (x) { return x.trim(); }).map(ingredienteDe);
+    var pasos = f.pasos.split('\n').filter(function (x) { return x.trim(); }).map(pasoDe);
+    return {
+      id: id, nombre: esc(f.nombre.trim()), emoji: (f.emoji || '🍲').trim().slice(0, 4), categoria: 'Mis recetas', dificultad: 'Fácil',
+      prep: Math.max(0, +f.prep || 0), coccion: Math.max(0, +f.coccion || 0), porciones: Math.max(1, +f.porciones || 2),
+      descripcion: esc(f.descripcion.trim() || 'Una receta hecha por mí.'), ingredientes: ings, utensilios: [], pasos: pasos, mia: true,
+      _f: f
+    };
+  }
+  function cargarMias() {
+    misRecetas.forEach(function (f) {
+      if (!f || !f.nombre || !f.ingredientes || !f.pasos || typeof RECETAS === 'undefined') return;
+      RECETAS.push(construirMia(f, f.id));
+    });
+  }
+  cargarMias();
+
+  var editandoMia = null; // null = lista, -1 = nueva, n = índice
+  function verMisRecetas() {
+    var h = '<a class="volver" href="#/">← Recetas</a><div class="panel"><h2>✍️ Mis recetas</h2>' +
+      '<p class="suave">Escribe tus recetas de siempre y úsalas como las demás: modo cocinar, temporizadores, plan y lista del mercado. Quedan guardadas en este celular, en tu perfil.</p>';
+    if (editandoMia == null) {
+      h += '<div class="fila-botones"><button class="boton" data-accion="mia-nueva">➕ Escribir una receta</button></div></div>';
+      h += misRecetas.length ? '<div class="panel"><ul class="lista">' + misRecetas.map(function (f, i) {
+        return '<li class="fila-mercado"><a href="#/receta/' + esc(f.id) + '" style="flex:1;text-decoration:none;color:inherit">' + esc(f.emoji || '🍲') + ' <strong>' + esc(f.nombre) + '</strong></a>' +
+          '<button class="chip" data-accion="mia-editar" data-valor="' + i + '">Editar</button><button class="quitar" data-accion="mia-borrar" data-valor="' + i + '" aria-label="Borrar ' + esc(f.nombre) + '">🗑</button></li>';
+      }).join('') + '</ul></div>' : '<p class="vacio">Todavía no has escrito ninguna. Toca «Escribir una receta» para empezar.</p>';
+      A().app.innerHTML = h;
+      return;
+    }
+    var f = editandoMia >= 0 ? misRecetas[editandoMia] : { nombre: '', emoji: '🍲', porciones: 2, prep: 10, coccion: 20, descripcion: '', ingredientes: '', pasos: '' };
+    h += '</div><div class="panel mia-form"><h2>' + (editandoMia >= 0 ? 'Editar receta' : 'Nueva receta') + '</h2>' +
+      '<label class="mia-campo">Nombre<input class="buscador" id="mia-nombre" maxlength="60" placeholder="Ej: Arroz con pollo de mi mamá" value="' + esc(f.nombre) + '"></label>' +
+      '<div class="mia-fila"><label class="mia-campo">Emoji<input class="buscador" id="mia-emoji" maxlength="4" value="' + esc(f.emoji) + '"></label>' +
+        '<label class="mia-campo">Porciones<input class="buscador" id="mia-porciones" type="number" inputmode="numeric" min="1" value="' + esc(f.porciones) + '"></label>' +
+        '<label class="mia-campo">Preparar (min)<input class="buscador" id="mia-prep" type="number" inputmode="numeric" min="0" value="' + esc(f.prep) + '"></label>' +
+        '<label class="mia-campo">Cocinar (min)<input class="buscador" id="mia-coccion" type="number" inputmode="numeric" min="0" value="' + esc(f.coccion) + '"></label></div>' +
+      '<label class="mia-campo">Descripción (opcional)<input class="buscador" id="mia-desc" maxlength="140" value="' + esc(f.descripcion) + '"></label>' +
+      '<label class="mia-campo">Ingredientes, uno por línea<textarea class="codigo" id="mia-ing" rows="7" placeholder="2 tazas de arroz&#10;500 g de pollo&#10;1 cebolla&#10;sal al gusto">' + esc(f.ingredientes) + '</textarea></label>' +
+      '<label class="mia-campo">Pasos, uno por línea<textarea class="codigo" id="mia-pasos" rows="8" placeholder="Pica la cebolla y sofríela 5 minutos&#10;Agrega el pollo y deja cocinar 20 minutos">' + esc(f.pasos) + '</textarea></label>' +
+      '<p class="pista izq">Si en un paso escribes «10 minutos», te pongo el botón del temporizador. Las cantidades con número («2 tazas de arroz») cambian solas cuando cambias las porciones.</p>' +
+      '<p class="pista izq" id="aviso-mia" style="color:var(--acento)"></p>' +
+      '<div class="fila-botones"><button class="boton" data-accion="mia-guardar">Guardar receta</button><button class="boton secundario" data-accion="mia-cancelar">Cancelar</button></div></div>';
+    A().app.innerHTML = h;
+  }
+  function valorMia(id) { var e = document.getElementById(id); return e ? e.value : ''; }
 
   // ================================================================ ACCIONES (clics)
   var acciones = {
@@ -798,6 +1005,34 @@ var EXTRAS = (function () {
       var inp = document.getElementById('nombre-otro'), n = (inp.value || '').trim();
       if (!n) { inp.focus(); inp.placeholder = 'Escribe el nombre'; return; }
       PERFIL.cambiar(PERFIL.agregar(n, avatarElegido(document.getElementById('panel-otra'), PERFIL.AVATARES[1])));
+    },
+    'offline-bajar': function () { bajarFotos(); },
+    'receta-whatsapp': function (el) {
+      var r = A().buscarReceta(el.dataset.id); if (!r) return;
+      var t = textoReceta(r);
+      if (navigator.share) { navigator.share({ title: r.nombre, text: t }).catch(function () {}); return; }
+      window.open('https://wa.me/?text=' + encodeURIComponent(t), '_blank', 'noopener');
+    },
+    'mia-nueva': function () { editandoMia = -1; verMisRecetas(); window.scrollTo(0, 0); },
+    'mia-editar': function (el, valor) { editandoMia = +valor; verMisRecetas(); window.scrollTo(0, 0); },
+    'mia-cancelar': function () { editandoMia = null; verMisRecetas(); },
+    'mia-borrar': function (el, valor) {
+      var f = misRecetas[+valor];
+      if (!f || !window.confirm('¿Borrar «' + f.nombre + '»? No se puede deshacer.')) return;
+      misRecetas.splice(+valor, 1); mem.guardar('misRecetas', misRecetas);
+      editandoMia = null; location.hash = '#/mis-recetas'; location.reload();
+    },
+    'mia-guardar': function () {
+      var f = { nombre: valorMia('mia-nombre'), emoji: valorMia('mia-emoji'), porciones: valorMia('mia-porciones'), prep: valorMia('mia-prep'), coccion: valorMia('mia-coccion'),
+        descripcion: valorMia('mia-desc'), ingredientes: valorMia('mia-ing'), pasos: valorMia('mia-pasos') };
+      var aviso = function (t) { var el = document.getElementById('aviso-mia'); if (el) el.textContent = t; };
+      if (!f.nombre.trim()) { aviso('Ponle un nombre a la receta.'); return; }
+      if (!f.ingredientes.trim()) { aviso('Escribe al menos un ingrediente.'); return; }
+      if (!f.pasos.trim()) { aviso('Escribe al menos un paso.'); return; }
+      f.id = editandoMia >= 0 ? misRecetas[editandoMia].id : 'mi-' + Date.now().toString(36);
+      if (editandoMia >= 0) misRecetas[editandoMia] = f; else misRecetas.push(f);
+      mem.guardar('misRecetas', misRecetas);
+      editandoMia = null; location.hash = '#/receta/' + f.id; location.reload();
     },
     'perfil-usar': function (el) { PERFIL.cambiar(el.dataset.id); },
     'perfil-borrar': function (el) {
@@ -962,9 +1197,9 @@ var EXTRAS = (function () {
   }
 
   return {
-    vistas: { plan: verPlan, compras: verCompras, progreso: verProgreso, aprender: verAprender, sustituciones: verSustituciones, perfil: verPerfil },
+    vistas: { 'mis-recetas': verMisRecetas, plan: verPlan, compras: verCompras, progreso: verProgreso, aprender: verAprender, sustituciones: verSustituciones, perfil: verPerfil },
     bienvenidaHTML: bienvenidaHTML, agregarACompras: agregarACompras, etiquetas: etiquetas,
     acciones: acciones, inicioHTML: inicioHTML, pasaFiltros: pasaFiltros, interpretar: interpretar,
-    recetaHTML: recetaHTML, finalHTML: finalHTML, miseHTML: miseHTML, vozHTML: vozHTML, alMostrarPaso: alMostrarPaso
+    recetaHTML: recetaHTML, finalHTML: finalHTML, miseHTML: miseHTML, vozHTML: vozHTML, alMostrarPaso: alMostrarPaso, vozActiva: function () { return voz.activa; }
   };
 })();

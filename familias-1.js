@@ -173,7 +173,7 @@ var GEN = (function () {
       prepD: 'Envuelve el bloque de tofu en papel de cocina o un limpión limpio, ponle encima una tabla con algo pesado y déjalo 15 minutos para que suelte agua. Luego córtalo en tajadas de 1,5 centímetros.',
       prepC: 'Sin esa agua, el tofu absorbe mejor el adobo y se dora en lugar de deshacerse.',
       fuego: 'medio-alto', m1: 4, m2: 4, marina: 20, reposo: 0, antiadherente: true,
-      puntoD: 'Mira las dos caras.',
+      puntoD: 'Voltea una tajada con la espátula y mira las dos caras.',
       puntoS: 'Costra dorada y firme por ambos lados; por dentro sigue blando.',
       puntoE: 'No lo muevas antes de tiempo: mientras no se dore, se pega y se rompe.' }
   ];

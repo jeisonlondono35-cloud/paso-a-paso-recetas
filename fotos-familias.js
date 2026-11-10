@@ -8,7 +8,7 @@
 (function () {
   var REGLAS = [
     [/^Salteado de/, 'salteado'],
-    [/^Pinchos de camarones/, 'pinchos-camaron'], [/^Pinchos/, 'pinchos'],
+    [/^Pinchos de camarones/, 'pinchos-camaron'], [/^Pinchos de res/, 'bistec'], [/^Pinchos de cerdo/, 'chuletas'], [/^Pinchos de verduras/, 'verduras-asadas'], [/^Pinchos/, 'pinchos'],
     [/^Pescado apanado/, 'pescado-apanado'], [/^Berenjena apanada/, 'berenjena-apanada'], [/apanada|^Milanesa/, 'milanesa'],
     [/^Alitas/, 'alitas'], [/^Muslos de pollo al horno/, 'muslos-horno'], [/^Pechugas de pollo al horno/, 'pollo-plancha'],
     [/^Lomo de cerdo al horno|^Medallones/, 'lomo-cerdo'], [/^Filetes de pescado al horno/, 'pescado-horno'],
@@ -47,8 +47,16 @@
     // Bebidas de fruta: foto de la fruta
     var m = /^(Batido|Smoothie|Jugo) de (.+?)( con (yogur|avena))?$/.exec(r.nombre);
     if (m && FRUTAS.indexOf(m[2]) >= 0) { r.foto = 'fruta-' + slug(m[2]); return; }
+    // Paletas de fruta: foto de esa fruta (en vez de una sola foto para todas)
+    m = /^Paletas (?:cremosas )?de (.+)$/.exec(r.nombre);
+    if (m && FRUTAS.indexOf(m[1]) >= 0) { r.foto = 'fruta-' + slug(m[1]); return; }
     for (var k = 0; k < REGLAS.length; k++) {
       if (REGLAS[k][0].test(r.nombre)) { r.foto = REGLAS[k][1]; return; }
     }
   });
+
+  // Si una receta generada tiene el mismo nombre que una escrita a mano, se distingue (después de asignar la foto)
+  var escritas = {};
+  RECETAS.forEach(function (r) { if (!r.gen) escritas[r.nombre] = true; });
+  RECETAS.forEach(function (r) { if (r.gen && escritas[r.nombre]) r.nombre = r.nombre.replace(/^(Sopa|Crema|Ensalada|Arroz|Pasta) /, '$1 casera '); });
 })();
