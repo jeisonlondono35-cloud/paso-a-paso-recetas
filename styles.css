@@ -861,3 +861,31 @@ a, button, input, select, textarea, label, summary { touch-action: manipulation;
 .paises::-webkit-scrollbar { display: none; }
 .pais { flex: 0 0 auto; border: 1.5px solid var(--borde); background: var(--tarjeta, transparent); color: var(--texto); border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: .9rem; white-space: nowrap; }
 .pais.activo { background: var(--acento); color: var(--sobre-acento); border-color: var(--acento); }
+
+/* ============ Mercado 3 ============ */
+.carrito { position: sticky; top: 49px; z-index: 15; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 -16px 12px; padding: 10px 16px; background: var(--acento); color: var(--sobre-acento); font-size: .95rem; box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .35); }
+.carrito[hidden] { display: none; }
+.carrito .suave { color: inherit; opacity: .85; font-size: .85rem; }
+.fila-mercado input.cant { width: 54px; text-align: center; padding: 8px 4px; border: 1.5px solid var(--borde); border-radius: 10px; background: var(--fondo); color: var(--texto); font-size: .95rem; }
+.fila-mercado input.cant::before { content: "×"; }
+.ruta-tienda { padding: 8px 0; border-bottom: 1px dashed var(--borde); }
+.ruta-tienda:last-of-type { border-bottom: none; }
+.barra-meta { height: 12px; border-radius: 999px; background: rgba(128, 128, 128, .22); overflow: hidden; margin: 10px 0 4px; }
+.barra-meta div { height: 100%; background: var(--verde, #6a642a); border-radius: 999px; transition: width .4s; }
+.barra-meta div.pasado { background: #b3402a; }
+.meta-mes { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--borde); }
+.meta-mes h3 { margin: 0 0 8px; font-size: 1rem; }
+/* Modo tienda: solo la lista, con letra y casillas grandes */
+.modo-tienda .panel:not(.panel-lista):not(.panel-fija) { display: none; }
+.modo-tienda .panel-fija details, .modo-tienda #aviso-compras, .modo-tienda .panel-fija .fila-botones .secundario:not([data-accion="modo-tienda"]) { display: none; }
+.modo-tienda .fila-mercado { padding: 14px 0; font-size: 1.1rem; }
+.modo-tienda .fila-mercado input[type=checkbox] { width: 28px; height: 28px; }
+.modo-tienda .fila-mercado small { font-size: .85rem; }
+
+/* Mercado en celular: el nombre del producto ocupa su propia línea y debajo van cantidad y precio */
+@media (max-width: 760px) {
+  .fila-mercado { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; }
+  .fila-mercado > label { flex: 1 1 100%; }
+  .fila-mercado > span { flex: 1 1 auto; }
+}

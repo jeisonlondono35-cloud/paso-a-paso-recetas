@@ -1091,10 +1091,15 @@
     return nuevos;
   }
   function neveraCuantas() { return enNevera.length; }
+  function neveraTiene(txt) {
+    var t = sinTildes(String(txt));
+    for (var k = 0; k < NEVERA.length; k++) if (NEVERA[k].re.test(t)) return enNevera.indexOf(NEVERA[k].id) >= 0;
+    return false;
+  }
 
   // Lo que extras.js necesita de esta app
   window.APP = {
-    neveraDesdeTexto: neveraDesdeTexto, neveraCuantas: neveraCuantas,
+    neveraDesdeTexto: neveraDesdeTexto, neveraCuantas: neveraCuantas, neveraTiene: neveraTiene,
     app: app, buscarReceta: buscarReceta, tarjetaHTML: tarjetaHTML, textoIngrediente: textoIngrediente,
     porcionesDe: porcionesDe, tiempo: tiempo, iniciarTimer: iniciarTimer, pasarPagina: pasarPagina, rutaActual: rutaActual,
     // Lo que falta de cada temporizador, dicho en palabras (para el modo manos libres)

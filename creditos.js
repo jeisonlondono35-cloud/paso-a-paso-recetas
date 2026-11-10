@@ -1124,5 +1124,215 @@ var CREDITOS = {
       "autor": "Olavia Kite from Tokyo, Japan",
       "licencia": "CC BY 2.0",
       "url": "https://commons.wikimedia.org/wiki/File:Arroz_atollado.jpg"
+  },
+  "tortas-fritas": {
+      "autor": "Jerowiki",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:TortaFrita.jpg"
+  },
+  "flan-dulce-leche": {
+      "autor": "anders pearson from new york, ny",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Flan_con_dulce_de_leche.jpg"
+  },
+  "panqueque-dulce-leche": {
+      "autor": "Soda POP",
+      "licencia": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Panqueque2.jpg"
+  },
+  "api-morado": {
+      "autor": "Gabby Notta",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Api_morado.jpg"
+  },
+  "mocochinchi": {
+      "autor": "Ferbr1",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Mocochinchi.JPG"
+  },
+  "helado-canela": {
+      "autor": "Camila Villarroel Montaño",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Calle_de_Tarata,_con_el_tradicional_helado_de_canela_y_leche.jpg"
+  },
+  "humintas": {
+      "autor": "Marcos Katz",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Relleno_de_una_humita_en_chala.JPG"
+  },
+  "pao-chapa": {
+      "autor": "Mark Hillary",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:P%C3%A3o_na_chapa.jpg"
+  },
+  "caipirinha": {
+      "autor": "Christian",
+      "licencia": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Cocktail_Caipirinha_raw.jpg"
+  },
+  "quindim": {
+      "autor": "Tamorlan",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Quindim_-_San_Miguel-_2011.JPG"
+  },
+  "pan-tomate": {
+      "autor": "Juan Emilio Prades Bel",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:T%C3%ADpico_pan_con_tomate_(La_Barona,_Castell%C3%B3n).jpg"
+  },
+  "chocolate-taza": {
+      "autor": "Xavi Talleda from Barcelona",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chocolate_a_la_taza_con_churros_y_ensaimada.jpg"
+  },
+  "sangria": {
+      "autor": "Frank K.",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Sangria_in_a_tall_skinny_glass_in_Malaga.jpg"
+  },
+  "flan-casero": {
+      "autor": "Ganímedes",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Flan_casero_con_dulce_de_leche.JPG"
+  },
+  "crema-catalana": {
+      "autor": "Ceeseven",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Crema_Catalana_Cake.jpg"
+  },
+  "torrijas": {
+      "autor": "Javier Lastras from España/Spain",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Torrija_con_az%C3%BAcar.jpg"
+  },
+  "ensalada-mixta": {
+      "autor": "Krista",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Ensalada_mixta_-_skaredy_kat.jpg"
+  },
+  "pisto": {
+      "autor": "Boca Dorada",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Pisto.jpg"
+  },
+  "frittata": {
+      "autor": "Ginasole",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Frittata-Pasquale.jpg"
+  },
+  "cappuccino": {
+      "autor": "Christos Andrews",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Cappuccino_milk_froth.jpg"
+  },
+  "panna-cotta": {
+      "autor": "Emil Frisk",
+      "licencia": "CC BY 2.5 se",
+      "url": "https://commons.wikimedia.org/wiki/File:Panna_cotta_with_strawberries_and_blueberries.JPG"
+  },
+  "affogato": {
+      "autor": "VR38DETT",
+      "licencia": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Affogato.JPG"
+  },
+  "zabaione": {
+      "autor": "Luca Conti",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Dolce_zabaione_porto_e_pesca.jpg"
+  },
+  "caprese": {
+      "autor": "Rainer Zenz",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Caprese-1.jpg"
+  },
+  "mugicha": {
+      "autor": "Corpse Reviver",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Mugicha_by_CR_01.jpg"
+  },
+  "ramune": {
+      "autor": "katorisi",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Ramune-lemonade,japan.JPG"
+  },
+  "sencha": {
+      "autor": "Rama",
+      "licencia": "CC BY-SA 2.0 fr",
+      "url": "https://commons.wikimedia.org/wiki/File:Sencha_img_0597.jpg"
+  },
+  "huevos-rancheros": {
+      "autor": "Elchavobeer",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Ela_huevos_rancheros.jpg"
+  },
+  "huevos-mexicana": {
+      "autor": "Connie Ma from United States of America",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Huevos_%C3%A0_la_Mexicana._(6571912625).jpg"
+  },
+  "flan-napolitano": {
+      "autor": "Giovanni Alfredo Garciliano Diaz",
+      "licencia": "CC BY 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Flan_napolitano.png"
+  },
+  "tres-leches": {
+      "autor": "Wikimedia Commons",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Tres_leches_cake.jpg"
+  },
+  "cocadas": {
+      "autor": "Dtarazona",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Cocada_on_black_background_20072011.jpg"
+  },
+  "tostada-aguacate": {
+      "autor": "Lablascovegmenu from London",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Avocado_and_bread_-_Tostadas_con_aguacate_(5276969902).jpg"
+  },
+  "pan-chicharron": {
+      "autor": "Ruocaled",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chicharron_Sandwich_%26_Ceviche@Mochikas_Peruvian_Cafe.jpg"
+  },
+  "chicha-morada": {
+      "autor": "No machine-readable author provided. Dangarcia~commonswiki a",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chicha_maiz_morado.jpg"
+  },
+  "mazamorra-morada": {
+      "autor": "Dtarazona",
+      "licencia": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Mazamorra_morada.JPG"
+  },
+  "suspiro-limeno": {
+      "autor": "No machine-readable author provided. Manuel González Olaeche",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Suspiro_de_lime%C3%B1a.JPG"
+  },
+  "majarete": {
+      "autor": "Gastronomia del Municipio Guanta",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:MAJARETE.jpg"
+  },
+  "chicha-venezolana": {
+      "autor": "Crescendo",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chicha_venezuela.jpg"
+  },
+  "pan-jamon": {
+      "autor": "Laura Fiorucci",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Pan_de_jam%C3%B3n_casero.JPG"
+  },
+  "papas-rellenas": {
+      "autor": "Håkan Svensson (Xauxa).",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Peru_PapasRellenas2.jpg"
+  },
+  "pescado-frito": {
+      "autor": "Ix kimiaranda",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Mojarra_frita_guerrerense.jpg"
   }
 };

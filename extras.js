@@ -450,7 +450,7 @@ var EXTRAS = (function () {
     todosLosItems().forEach(function (it) {
       var d = precioDe(it.pk);
       if (!d) { r.sin++; return; }
-      r.total += d.p; r[d.tipo]++;
+      r.total += d.p * cantDe(it); r[d.tipo]++;
     });
     return r;
   }
@@ -468,7 +468,15 @@ var EXTRAS = (function () {
   }
   function guardarPrecio(pk, tienda, valor) {
     if (!pk || !tienda) return;
-    if (valor > 0) { (precios[pk] = precios[pk] || {})[tienda] = { p: Math.round(valor), f: hoy() }; }
+    if (valor > 0) {
+      var previo = precios[pk] && precios[pk][tienda];
+      if (previo && previo.p !== Math.round(valor)) {
+        (histPrecios[pk] = histPrecios[pk] || []).push({ t: tienda, p: previo.p, f: previo.f });
+        if (histPrecios[pk].length > 12) histPrecios[pk].shift();
+        mem.guardar('histPrecios', histPrecios);
+      }
+      (precios[pk] = precios[pk] || {})[tienda] = { p: Math.round(valor), f: hoy() };
+    }
     else if (precios[pk]) { delete precios[pk][tienda]; if (!Object.keys(precios[pk]).length) delete precios[pk]; }
     mem.guardar('precios', precios);
   }
@@ -518,12 +526,15 @@ var EXTRAS = (function () {
       var ref = REF[pk], sinMio = !(p && cur && p[cur]);
       var partes = [];
       if (t) partes.push('💲 ' + t);
+      var tend = cur ? tendencia(pk, cur) : ''; if (tend) partes.push(tend);
+      var dd = precioDe(pk), cc = cant[pk] > 1 ? cant[pk] : 1; if (dd && cc > 1) partes.push('= ' + cop(dd.p * cc) + ' (×' + cc + ')');
       if (barata) partes.push('✅ aquí es lo más barato que he visto');
       if (ref && sinMio) partes.push('≈ ' + cop(ref.p) + ' ' + ref.u + ' (referencia aproximada)');
       el.innerHTML = partes.join(' · ');
     });
     var r = document.getElementById('resumen-mercado');
     if (r) r.innerHTML = resumenHTML();
+    pintarCarrito();
   }
 
   function resumenHTML() {
@@ -534,7 +545,7 @@ var EXTRAS = (function () {
     if (!tiendas.length) return estHTML + '<p class="suave" style="margin:0">Agrega tus tiendas arriba y anota lo que pagas: con eso te digo cuánto te cuesta este mercado en cada una.</p>';
     var filas = tiendas.map(function (t) {
       var total = 0, con = 0;
-      items.forEach(function (it) { var p = precios[it.pk] && precios[it.pk][t.n]; if (p) { total += p.p; con++; } });
+      items.forEach(function (it) { var p = precios[it.pk] && precios[it.pk][t.n]; if (p) { total += p.p * cantDe(it); con++; } });
       return { t: t, total: total, con: con, falta: items.length - con };
     });
     var completas = filas.filter(function (f) { return f.falta === 0; }).sort(function (a, b) { return a.total - b.total; });
@@ -564,7 +575,7 @@ var EXTRAS = (function () {
     items.forEach(function (it) {
       var d = precioDe(it.pk);
       e.items.push(it.prod);
-      if (d) { e.total += d.p; e[d.tipo]++; } else e.sin++;
+      if (d) { e.total += d.p * cantDe(it); e[d.tipo]++; } else e.sin++;
     });
     var nuevos = A().neveraDesdeTexto(e.items);
     // lo que se compró a mano sale de la lista; lo del plan queda marcado como comprado
@@ -594,7 +605,7 @@ var EXTRAS = (function () {
   }
 
   function historialHTML() {
-    if (!historial.length) return '';
+    if (!historial.length) return '<div class="panel"><h2>📊 Mis mercados' + (ciudad ? ' en ' + esc(ciudad) : '') + '</h2><p class="suave" style="margin:0 0 8px">Cuando termines tu primera compra aquí verás cuánto gastas, en qué tienda y qué compras más.</p>' + metaHTML() + '</div>';
     var mes = hoy().slice(0, 7), delMes = 0, suma = 0, conTotal = 0, porTienda = {}, veces = {};
     historial.forEach(function (e) {
       if (e.total) { suma += e.total; conTotal++; if (e.f.slice(0, 7) === mes) delMes += e.total; }
@@ -611,18 +622,126 @@ var EXTRAS = (function () {
       (frecuentes.length ? '<p class="pista izq">Lo que más compras: ' + frecuentes.map(function (x) { return esc(x.n) + ' (' + x.c + ')'; }).join(', ') + '.</p>' : '') +
       '<ul class="lista">' + historial.slice(0, 5).map(function (e) {
         return '<li><details><summary>' + esc(fechaCorta(e.f)) + ' · ' + esc(e.tienda || 'Sin tienda') + ' · ' + (e.total ? cop(e.total) : 'sin precios') + ' · ' + e.n + ' productos</summary>' +
-          '<p class="pista izq" style="margin:6px 0 0">' + (e.items || []).map(esc).join(', ') + '</p></details></li>';
+          '<p class="pista izq" style="margin:6px 0 0">' + (e.items || []).map(esc).join(', ') + '</p><button class="chip" data-accion="compra-repetir" data-valor="' + historial.indexOf(e) + '">↻ Repetir esta compra</button></details></li>';
       }).join('') + '</ul>' +
       '<div class="fila-botones"><button class="chip" data-accion="historial-borrar">Borrar historial</button></div>' +
-      '<p class="pista izq">Los totales usan los precios que anotaste; si falta alguno, una referencia aproximada.</p></div>';
+      '<p class="pista izq">Los totales usan los precios que anotaste; si falta alguno, una referencia aproximada.</p>' + cambiosHTML() + metaHTML() + '</div>';
+  }
+
+  // ================================================================ MERCADO 3: cantidades, presupuesto, ruta, historial de precios, plantillas
+  var cant = mem.leer('comprasCant', {}), meta = mem.leer('metaMercado', 0), histPrecios = mem.leer('histPrecios', {}), enTienda = false;
+  function cantDe(it) { return cant[it.pk] > 0 ? cant[it.pk] : 1; }
+  function guardarCant() { mem.guardar('comprasCant', cant); }
+
+  var PLANTILLAS = [
+    ['🧺 Semana para 2 personas', [['Arroz', 2], ['Papa', 4], ['Tomate', 2], ['Cebolla cabezona', 2], ['Cebolla larga', 1], ['Zanahoria', 2], ['Plátano', 3], ['Limón', 1], ['Aguacate', 2], ['Cilantro', 1], ['Ajo', 1], ['Pollo', 3], ['Carne de res', 2], ['Huevos', 12], ['Leche', 4], ['Queso', 1], ['Aceite', 1], ['Panela', 1], ['Café', 1], ['Pan', 1], ['Lentejas', 1], ['Pasta', 1]]],
+    ['👨‍👩‍👧‍👦 Semana para 4 personas', [['Arroz', 4], ['Papa', 8], ['Tomate', 4], ['Cebolla cabezona', 4], ['Cebolla larga', 2], ['Zanahoria', 4], ['Plátano', 6], ['Limón', 2], ['Aguacate', 4], ['Cilantro', 2], ['Ajo', 2], ['Pollo', 6], ['Carne de res', 4], ['Huevos', 30], ['Leche', 8], ['Queso', 2], ['Aceite', 1], ['Panela', 2], ['Café', 1], ['Pan', 2], ['Lentejas', 2], ['Fríjol', 2], ['Pasta', 2]]],
+    ['💰 Mercado económico', [['Arroz', 3], ['Papa', 5], ['Lentejas', 2], ['Fríjol', 2], ['Huevos', 15], ['Zanahoria', 3], ['Cebolla cabezona', 3], ['Tomate', 3], ['Pasta', 2], ['Avena', 1], ['Panela', 2], ['Aceite', 1], ['Sal', 1], ['Plátano', 4], ['Pollo', 3]]],
+    ['🍳 Desayunos de la semana', [['Huevos', 12], ['Leche', 4], ['Pan', 2], ['Queso', 2], ['Mantequilla', 1], ['Café', 1], ['Chocolate', 1], ['Avena', 1], ['Banano', 2], ['Harina para arepas', 2]]],
+    ['🧼 Aseo del hogar', [['Papel higiénico', 1], ['Jabón de baño', 2], ['Detergente', 1], ['Jabón de loza', 1], ['Crema dental', 1], ['Bolsas de basura', 1]]]
+  ];
+  var CATALOGO = (function () {
+    var vistos = {}, l = [];
+    REF_LISTA.map(function (x) { return x[0]; }).concat([].concat.apply([], CANASTA.map(function (c) { return c[1]; }))).forEach(function (n) { if (!vistos[sinT(n)]) { vistos[sinT(n)] = 1; l.push(n); } });
+    return l.sort();
+  })();
+  function catalogoHTML() { return '<datalist id="catalogo">' + CATALOGO.map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>'; }
+
+  function tendencia(pk, tienda) {
+    var h = histPrecios[pk], act = precios[pk] && precios[pk][tienda];
+    if (!h || !act) return '';
+    var ant = null;
+    for (var k = h.length - 1; k >= 0; k--) if (h[k].t === tienda) { ant = h[k]; break; }
+    if (!ant || !ant.p) return '';
+    var pct = Math.round((act.p - ant.p) / ant.p * 100);
+    if (!pct) return '';
+    return (pct > 0 ? '📈 subió ' : '📉 bajó ') + Math.abs(pct) + '% (antes ' + cop(ant.p) + ', ' + fechaCorta(ant.f) + ')';
+  }
+
+  // Ruta de compra: cada producto donde sale más barato entre tus tiendas
+  function rutaHTML() {
+    if (tiendas.length < 2) return '';
+    var pend = todosLosItems().filter(function (it) { return !hechas[it.k]; });
+    if (!pend.length) return '';
+    var grupos = {}, sinDato = [], ahorro = 0, comparables = 0;
+    pend.forEach(function (it) {
+      var p = precios[it.pk], ops = tiendas.filter(function (t) { return p && p[t.n]; });
+      if (!ops.length) { sinDato.push(it); return; }
+      ops.sort(function (a, b) { return p[a.n].p - p[b.n].p; });
+      var mejor = ops[0], peor = ops[ops.length - 1], c = cantDe(it);
+      var g = grupos[mejor.n] = grupos[mejor.n] || { items: [], suma: 0 };
+      g.items.push(it.prod + (c > 1 ? ' ×' + c : '')); g.suma += p[mejor.n].p * c;
+      if (ops.length > 1) { ahorro += (p[peor.n].p - p[mejor.n].p) * c; comparables++; }
+    });
+    var nombres = Object.keys(grupos);
+    if (!nombres.length) return '';
+    return '<div class="panel panel-ruta"><h2>🗺️ Dónde comprar cada cosa</h2>' +
+      nombres.sort(function (a, b) { return grupos[b].items.length - grupos[a].items.length; }).map(function (n) {
+        var g = grupos[n];
+        return '<div class="ruta-tienda"><strong>🛒 ' + esc(n) + '</strong> <span class="suave">(' + g.items.length + ') · ' + cop(g.suma) + '</span><br><small>' + g.items.map(esc).join(', ') + '</small></div>';
+      }).join('') +
+      (sinDato.length ? '<p class="pista izq">Sin precio aún (' + sinDato.length + '): ' + sinDato.slice(0, 8).map(function (it) { return esc(it.prod); }).join(', ') + (sinDato.length > 8 ? '…' : '') + '.</p>' : '') +
+      (ahorro > 0 ? '<p class="completa" style="margin:10px 0 0">💰 Comprando cada cosa donde sale más barata ahorras ≈ ' + cop(ahorro) + ' frente a pagar siempre el precio más alto (' + comparables + ' productos comparados).</p>'
+        : '<p class="pista izq">Anota el precio de un mismo producto en más de una tienda y aquí verás cuánto te ahorras.</p>') + '</div>';
+  }
+
+  function pintarCarrito() {
+    var el = document.getElementById('carrito');
+    if (!el) return;
+    var todos = todosLosItems();
+    if (!todos.length) { el.innerHTML = ''; el.hidden = true; return; }
+    var marc = todos.filter(function (it) { return hechas[it.k] && !registradas[it.k]; }), suma = 0;
+    marc.forEach(function (it) { var d = precioDe(it.pk); if (d) suma += d.p * cantDe(it); });
+    el.hidden = false;
+    el.innerHTML = '<span>🛒 En el carrito: <strong>' + cop(suma) + '</strong></span><span class="suave">' + marc.length + ' de ' + (todos.length - Object.keys(registradas).filter(function (k) { return registradas[k]; }).length) + ' marcados</span>';
+  }
+
+  // Presupuesto del mes
+  function mesGastado() { var mes = hoy().slice(0, 7), t = 0; historial.forEach(function (e) { if (e.f.slice(0, 7) === mes) t += e.total || 0; }); return t; }
+  function metaHTML() {
+    var g = mesGastado(), pct = meta ? Math.round(g / meta * 100) : 0;
+    return '<div class="meta-mes"><h3>🎯 Presupuesto del mes</h3>' +
+      '<div class="fila-botones"><input class="buscador corto" id="meta-valor" type="number" inputmode="numeric" min="0" step="10000" placeholder="¿Cuánto quieres gastar al mes?" value="' + (meta || '') + '"><button class="boton secundario" data-accion="meta-guardar">Guardar</button></div>' +
+      (meta ? '<div class="barra-meta"><div class="' + (pct > 100 ? 'pasado' : '') + '" style="width:' + Math.min(100, pct) + '%"></div></div><p class="pista izq" style="margin:4px 0 0">Llevas ' + cop(g) + ' de ' + cop(meta) + ' (' + pct + '%)' +
+        (pct > 100 ? ': te pasaste por ' + cop(g - meta) + '.' : '. Te quedan ' + cop(meta - g) + '.') + '</p>' : '<p class="pista izq" style="margin:4px 0 0">Ponle una meta y te voy diciendo cuánto llevas.</p>') + '</div>';
+  }
+
+  // Precios que han cambiado
+  function cambiosHTML() {
+    var l = [];
+    Object.keys(histPrecios).forEach(function (pk) {
+      Object.keys(precios[pk] || {}).forEach(function (t) { var tx = tendencia(pk, t); if (tx) l.push({ pk: pk, t: t, tx: tx }); });
+    });
+    if (!l.length) return '';
+    return '<p class="pista izq" style="margin-bottom:2px"><strong>Precios que han cambiado</strong></p><ul class="lista">' + l.slice(0, 6).map(function (x) {
+      return '<li><small>' + esc(x.pk) + ' en ' + esc(x.t) + ': ' + x.tx + '</small></li>';
+    }).join('') + '</ul>';
+  }
+
+  // Lo que sueles comprar y puede que ya no tengas
+  function reposicionHTML() {
+    if (historial.length < 2) return '';
+    var veces = {}, enLista = {};
+    todosLosItems().forEach(function (it) { enLista[sinT(it.prod)] = 1; });
+    historial.forEach(function (e) { (e.items || []).forEach(function (n) { var k = sinT(n); veces[k] = veces[k] || { n: n, c: 0 }; veces[k].c++; }); });
+    var s = Object.keys(veces).map(function (k) { return veces[k]; }).filter(function (x) { return x.c >= 2 && !enLista[sinT(x.n)] && !A().neveraTiene(x.n); }).sort(function (a, b) { return b.c - a.c; }).slice(0, 8);
+    if (!s.length) return '';
+    return '<div class="panel"><h2>💡 Puede que ya te falten</h2><p class="suave" style="margin:0 0 8px">Los compras seguido y no están en tu nevera. Toca para agregarlos a la lista:</p>' +
+      '<div class="filtros" style="margin:0">' + s.map(function (x) { return '<button class="chip" data-accion="canasta" data-valor="' + esc(x.n) + '">+ ' + esc(x.n) + ' <small>(' + x.c + ' veces)</small></button>'; }).join('') + '</div></div>';
+  }
+
+  function plantillasHTML() {
+    return '<p class="suave" style="margin:12px 0 6px">📋 Listas ya armadas (con cantidades):</p><div class="filtros" style="margin:0">' +
+      PLANTILLAS.map(function (pl, k) { return '<button class="chip" data-accion="plantilla" data-valor="' + k + '">' + pl[0] + '</button>'; }).join('') + '</div>' +
+      '<p class="pista izq">Las cantidades son por presentación (libra, litro, unidad…). Cámbialas en cada producto.</p>';
   }
 
   function verCompras() {
     var grupos = listaCompras(), total = 0;
     grupos.forEach(function (g) { total += g.items.length; });
     var enLista = extra.map(function (x) { return sinT(x); });
-    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' + ultimaCompraHTML() +
-      '<div class="panel"><h2>🛒 Lista del mercado</h2>' +
+    A().app.innerHTML = '<a class="volver" href="#/">← Recetas</a>' + ultimaCompraHTML() + '<div id="carrito" class="carrito" hidden></div><div class="mercado' + (enTienda ? ' modo-tienda' : '') + '">' + catalogoHTML() +
+      '<div class="panel panel-fija"><h2>🛒 Lista del mercado</h2>' +
         '<div class="fila-botones"><label class="suave" for="ciudad">Ciudad</label><input class="buscador corto" id="ciudad" placeholder="Zipaquirá" value="' + esc(ciudad) + '"></div>' +
         '<div class="fila-botones"><label class="suave" for="tienda-actual">Hoy voy a comprar en</label><select id="tienda-actual"><option value="">— elige una tienda —</option>' +
           tiendas.map(function (t) { return '<option value="' + esc(t.n) + '"' + (t.n === tiendaActual ? ' selected' : '') + '>' + esc(t.n) + (t.zona ? ' (' + esc(t.zona) + ')' : '') + '</option>'; }).join('') + '</select></div>' +
@@ -634,7 +753,7 @@ var EXTRAS = (function () {
           '<p class="pista izq">Ara, D1 y Super Día son las que me nombraste para Zipaquirá. No tengo direcciones ni horarios: escribe el barrio de cada una si quieres distinguirlas.</p>' +
         '</details></div>' +
       '<div class="panel"><h2>➕ Agregar a la lista</h2>' +
-        '<div class="fila-botones"><input class="buscador" id="nueva-compra" placeholder="Escribe: leche, huevos, arroz…" style="flex:1;min-width:190px"><button class="boton" data-accion="compras-agregar">Agregar</button></div>' +
+        '<div class="fila-botones"><input class="buscador" id="nueva-compra" list="catalogo" autocomplete="off" placeholder="Escribe: leche, huevos, arroz…" style="flex:1;min-width:190px"><button class="boton" data-accion="compras-agregar">Agregar</button></div>' +
         '<div class="fila-botones">' + (Rec ? '<button class="boton secundario" data-accion="compras-dictar">🎤 Dictar</button>' : '') +
           '<button class="boton secundario" data-accion="tiquete-abrir">📷 Leer tiquete</button><input type="file" id="foto-tiquete" accept="image/*" hidden></div>' +
         '<p class="pista izq" id="aviso-mercado">' + (avisoMercado || 'Escribe varias cosas separadas por comas, dicta, o toma una foto al tiquete de una compra: lo leo en tu celular, sin subir la foto a ningún lado. Lo que planees cocinar se suma solo desde el <a href="#/plan">plan de la semana</a>.') + '</p>' +
@@ -644,20 +763,21 @@ var EXTRAS = (function () {
           return '<div class="grupo-filtro" style="margin-top:10px"><strong style="min-width:28px">' + c[0] + '</strong>' + c[1].map(function (x) {
             return '<button class="chip' + (enLista.indexOf(sinT(x)) >= 0 ? ' activo' : '') + '" data-accion="canasta" data-valor="' + esc(x) + '">' + esc(x) + '</button>';
           }).join('') + '</div>';
-        }).join('') : '') + '</div>' +
-      (total ? '<div class="panel"><div class="fila-botones" style="margin-top:0"><button class="boton" data-accion="compra-terminar">✅ Terminé de comprar' + (porRegistrar().length ? ' (' + porRegistrar().length + ')' : '') + '</button><button class="boton secundario" data-accion="compras-whatsapp">💬 WhatsApp</button><button class="boton secundario" data-accion="compras-compartir">📤 Copiar / compartir</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button><button class="boton secundario" data-accion="compras-vaciar">Borrar lo agregado a mano</button></div>' +
+        }).join('') : '') + plantillasHTML() + '</div>' +
+      (total ? '<div class="panel panel-fija"><div class="fila-botones" style="margin-top:0"><button class="boton" data-accion="compra-terminar">✅ Terminé de comprar' + (porRegistrar().length ? ' (' + porRegistrar().length + ')' : '') + '</button><button class="boton secundario" data-accion="modo-tienda">' + (enTienda ? '↩️ Salir del modo tienda' : '🏪 Estoy en la tienda') + '</button><button class="boton secundario" data-accion="compras-whatsapp">💬 WhatsApp</button><button class="boton secundario" data-accion="compras-compartir">📤 Copiar / compartir</button><button class="boton secundario" data-accion="compras-desmarcar">Desmarcar todo</button><button class="boton secundario" data-accion="compras-vaciar">Borrar lo agregado a mano</button></div>' +
         '<p class="pista izq" id="aviso-compras">' + (tiendaActual ? 'Anota a la derecha lo que pagas en ' + esc(tiendaActual) + '. La próxima vez ya lo sabré.' : 'Elige arriba la tienda donde vas a comprar para poder anotar los precios.') + '</p></div>'
-        : '<p class="vacio">Tu lista está vacía. Escribe, dicta, lee un tiquete o toca «Lo de siempre» para empezar.</p>') +
+        : '<p class="vacio">Tu lista está vacía. Escribe, dicta, lee un tiquete o toca «Lo de siempre» para empezar.</p>') + rutaHTML() +
       grupos.filter(function (g) { return g.items.length; }).map(function (g) {
-        return '<div class="panel"><h2>' + g.t + '</h2><ul class="lista">' + g.items.map(function (it) {
+        return '<div class="panel panel-lista"><h2>' + g.t + '</h2><ul class="lista">' + g.items.map(function (it) {
           var mio = tiendaActual && precios[it.pk] && precios[it.pk][tiendaActual];
           return '<li class="fila-mercado"><label><input type="checkbox" data-compra="' + esc(it.k) + '"' + (hechas[it.k] ? ' checked' : '') + '><span>' + it.texto +
             '<small>' + (it.de.length ? esc(it.de.join(' · ')) + '<br>' : '') + '<span data-pista="' + esc(it.pk) + '"></span></small></span></label>' +
+            '<input class="cant" type="number" inputmode="decimal" min="1" step="1" data-cant="' + esc(it.pk) + '" value="' + cantDe(it) + '" aria-label="Cantidad de ' + esc(it.prod) + '">' +
             '<input class="precio" type="number" inputmode="numeric" min="0" step="50" data-precio="' + esc(it.pk) + '" placeholder="$"' + (mio ? ' value="' + mio.p + '"' : '') + (tiendaActual ? '' : ' disabled') + ' aria-label="Precio de ' + esc(it.prod) + (tiendaActual ? ' en ' + esc(tiendaActual) : '') + '">' +
             (it.extra != null ? '<button class="quitar" data-accion="compras-quitar" data-valor="' + it.extra + '" aria-label="Quitar">✕</button>' : '') + '</li>';
         }).join('') + '</ul></div>';
       }).join('') +
-      (total ? '<div class="panel"><h2>💰 ¿Cuánto me cuesta este mercado?</h2><div id="resumen-mercado"></div></div>' : '') + historialHTML();
+      (total ? '<div class="panel"><h2>💰 ¿Cuánto me cuesta este mercado?</h2><div id="resumen-mercado"></div></div>' : '') + historialHTML() + reposicionHTML() + '</div>';
     avisoMercado = '';
     refrescarPistas();
   }
@@ -682,8 +802,8 @@ var EXTRAS = (function () {
       out.push(g.t);
       pend.forEach(function (it) {
         var p = tiendaActual && precios[it.pk] && precios[it.pk][tiendaActual];
-        if (p) suma += p.p; else sinPrecio++;
-        out.push('  [ ] ' + it.texto.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&quot;/g, '"') + (p ? '  ~' + cop(p.p) : ''));
+        if (p) suma += p.p * cantDe(it); else sinPrecio++;
+        out.push('  [ ] ' + it.texto.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&quot;/g, '"') + (cantDe(it) > 1 ? ' ×' + cantDe(it) : '') + (p ? '  ~' + cop(p.p * cantDe(it)) : ''));
       });
       out.push('');
     });
@@ -1172,6 +1292,25 @@ var EXTRAS = (function () {
     'compras-desmarcar': function () { hechas = {}; registradas = {}; mem.guardar('comprasHechas', hechas); guardarHistorial(); verCompras(); },
     'compra-terminar': function () { terminarCompra(); },
     'compra-cerrar': function () { ultimaCompra = null; verCompras(); },
+    'modo-tienda': function () { enTienda = !enTienda; verCompras(); window.scrollTo(0, 0); },
+    'meta-guardar': function () { meta = Math.max(0, parseInt((document.getElementById('meta-valor') || {}).value, 10) || 0); mem.guardar('metaMercado', meta); verCompras(); },
+    'plantilla': function (el) {
+      var pl = PLANTILLAS[Number(el.dataset.valor)]; if (!pl) return;
+      var nuevos = 0;
+      pl[1].forEach(function (x) {
+        if (!extra.some(function (y) { return sinT(y) === sinT(x[0]); })) { extra.push(x[0]); nuevos++; }
+        if (!(cant[pkDe(x[0])] > 0)) cant[pkDe(x[0])] = x[1];
+      });
+      mem.guardar('comprasExtra', extra); guardarCant();
+      avisoMercado = '✅ Agregué ' + nuevos + ' productos de «' + pl[0].replace(/^\S+\s/, '') + '». Ajusta las cantidades en cada uno.';
+      verCompras();
+    },
+    'compra-repetir': function (el) {
+      var h = historial[Number(el.dataset.valor)]; if (!h) return;
+      var n = agregarACompras((h.items || []).join(', '));
+      avisoMercado = '✅ Volví a agregar ' + n + ' productos de esa compra.';
+      verCompras(); window.scrollTo(0, 0);
+    },
     'historial-borrar': function () { if (window.confirm('¿Borrar el historial de compras? No se puede deshacer.')) { historial = []; guardarHistorial(); verCompras(); } },
     'compras-compartir': function () {
       var t = textoCompras(), aviso = document.getElementById('aviso-compras');
@@ -1237,7 +1376,8 @@ var EXTRAS = (function () {
   // Cambios en casillas y notas
   document.addEventListener('change', function (e) {
     var t = e.target;
-    if (t.dataset && t.dataset.compra != null) { hechas[t.dataset.compra] = t.checked; mem.guardar('comprasHechas', hechas); }
+    if (t.dataset && t.dataset.compra != null) { hechas[t.dataset.compra] = t.checked; mem.guardar('comprasHechas', hechas); pintarCarrito(); }
+    if (t.dataset && t.dataset.cant != null) { cant[t.dataset.cant] = Math.max(1, parseFloat(t.value) || 1); guardarCant(); refrescarPistas(); }
     if (t.dataset && t.dataset.precio != null && tiendaActual) { guardarPrecio(t.dataset.precio, tiendaActual, parseInt(t.value, 10)); refrescarPistas(); }
     if (t.id === 'tienda-actual') { tiendaActual = t.value; mem.guardar('tiendaActual', tiendaActual); verCompras(); }
     if (t.id === 'ciudad') { ciudad = t.value.trim(); mem.guardar('ciudad', ciudad); }
