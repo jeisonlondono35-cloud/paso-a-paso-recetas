@@ -954,5 +954,175 @@ var CREDITOS = {
     "autor": "Horacio Cambeiro",
     "licencia": "CC BY-SA 3.0",
     "url": "https://commons.wikimedia.org/wiki/File:Traditional_Vegetable_Soup_from_Argentina.jpg"
+  },
+  "ajiaco": {
+      "autor": "Jdvillalobos",
+      "licencia": "CC BY 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Ajiaco-santafere%C3%B1o.JPG"
+  },
+  "changua": {
+      "autor": "Gatograma",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Changua.jpg"
+  },
+  "cuchuco": {
+      "autor": "Pipesangar",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Cuchuco_De_Trigo.JPG"
+  },
+  "caldo-costilla": {
+      "autor": "Peter Angritt",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Caldo_de_Costilla.jpg"
+  },
+  "hogao": {
+      "autor": "Xemenendura",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Hogao.JPG"
+  },
+  "bandeja-paisa": {
+      "autor": "Matt Lemmon from Colorado, USA",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Bandeja_paisa_antioque%C3%B1a,_Colombia.jpg"
+  },
+  "tamales": {
+      "autor": "JOAN",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Tamal_tolimense_abierto.jpg"
+  },
+  "empanadas": {
+      "autor": "Francesc Fort",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Empanada_colombiana.jpg"
+  },
+  "arepa-choclo": {
+      "autor": "Nelson Fernando  Sotelo Castro",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Arepa_de_chocolo.jpg"
+  },
+  "almojabanas": {
+      "autor": "DnTrotaMundos ☮",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Almoj%C3%A1banas_para_comerse_los_dedos_en_un_descuido_-_panoramio.jpg"
+  },
+  "pandebono": {
+      "autor": "Hoako",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Pandeyuca,_Pandebono_y_Almoj%C3%A1bana._Colombia.JPG"
+  },
+  "bunuelos": {
+      "autor": "John Alexis Guerra Gómez",
+      "licencia": "CC BY-SA 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Bu%C3%B1uelos_Colombianos_(24221303805).jpg"
+  },
+  "natilla": {
+      "autor": "Jdvillalobos",
+      "licencia": "CC0",
+      "url": "https://commons.wikimedia.org/wiki/File:NatillaColombiana.jpg"
+  },
+  "arroz-leche": {
+      "autor": "Flipwared",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Arroz_con_leche_Tregar_Canela.jpg"
+  },
+  "sancocho": {
+      "autor": "Daniestrella123",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Sancocho_de_gallina_yopal.jpg"
+  },
+  "patacones": {
+      "autor": "Jdvillalobos",
+      "licencia": "CC BY 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Patacones_-_Barranquilla.jpg"
+  },
+  "torta-maracuya": {
+      "autor": "Andy Li",
+      "licencia": "CC0",
+      "url": "https://commons.wikimedia.org/wiki/File:Passion_fruit_%26_raspberry_cheesecake_-_Jacob%27s_Bakery_%2B_Cafe_2025-10-08.jpg"
+  },
+  "arequipe": {
+      "autor": "audinou from Paris, France",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:DulceDeLeche.jpg"
+  },
+  "aguapanela": {
+      "autor": "Huhorihe2",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Cup_of_aguapanela_con_lim%C3%B3n.jpg"
+  },
+  "chocolate-queso": {
+      "autor": "Luigis1234",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chocolate_con_Queso.jpg"
+  },
+  "dorayaki": {
+      "autor": "Ocdp",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Dorayaki_003.jpg"
+  },
+  "purin": {
+      "autor": "Myself",
+      "licencia": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Purin_L_002.jpg"
+  },
+  "karaage": {
+      "autor": "Ocdp",
+      "licencia": "CC0",
+      "url": "https://commons.wikimedia.org/wiki/File:Chicken_karaage_003.jpg"
+  },
+  "castella": {
+      "autor": "Ocdp",
+      "licencia": "CC0",
+      "url": "https://commons.wikimedia.org/wiki/File:Castella_001.jpg"
+  },
+  "matcha-latte": {
+      "autor": "NuCastiel from Bangkok, Thailand",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Matcha_Green_Tea_Latte_(35487991553).jpg"
+  },
+  "mochi": {
+      "autor": "Kropsoq",
+      "licencia": "CC BY-SA 3.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Mochi_002.jpg"
+  },
+  "nikujaga": {
+      "autor": "ノボホショコロトソ",
+      "licencia": "CC BY 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Nikujaga.jpg"
+  },
+  "shogayaki": {
+      "autor": "Ocdp",
+      "licencia": "CC0",
+      "url": "https://commons.wikimedia.org/wiki/File:Shogayaki_001.jpg"
+  },
+  "helado-matcha": {
+      "autor": "Terence Ong",
+      "licencia": "CC BY 2.5",
+      "url": "https://commons.wikimedia.org/wiki/File:Green_tea_ice_cream.JPG"
+  },
+  "panqueques-japoneses": {
+      "autor": "t-mizo",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Souffle_Pan_Cake_in_Japan.jpg"
+  },
+  "arroz-coco": {
+      "autor": "Adriblanco",
+      "licencia": "CC BY-SA 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Arroz_con_coco.JPG"
+  },
+  "chicharron": {
+      "autor": "Meekers",
+      "licencia": "CC BY 4.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Large_Chicharron.jpg"
+  },
+  "calentado": {
+      "autor": "young shanahan",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Cerdo,_calentado_y_arepa.jpg"
+  },
+  "arroz-atollado": {
+      "autor": "Olavia Kite from Tokyo, Japan",
+      "licencia": "CC BY 2.0",
+      "url": "https://commons.wikimedia.org/wiki/File:Arroz_atollado.jpg"
   }
 };

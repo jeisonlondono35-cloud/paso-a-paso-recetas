@@ -1,7 +1,7 @@
 /* Modo sin conexión: guarda la app y las fotos que ya viste. */
-var CACHE = 'paso-a-paso-v6';
+var CACHE = 'paso-a-paso-v7';
 var BASE = ['./', 'index.html', 'styles.css', 'app.js', 'extras.js', 'perfil.js', 'recetas.js', 'recetas-mas.js', 'familias-1.js', 'familias-2.js', 'familias-3.js',
-  'japonesa.js', 'cocinas-1.js', 'cocinas-2.js', 'fotos-familias.js', 'creditos.js', 'manifest.json', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png'];
+  'japonesa.js', 'cocinas-1.js', 'cocinas-2.js', 'colombiana-1.js', 'colombiana-2.js', 'japonesa-2.js', 'frutas-postres.js', 'fotos-familias.js', 'creditos.js', 'manifest.json', 'logo.png', 'favicon.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }).then(function () { return self.skipWaiting(); }));

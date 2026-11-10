@@ -369,7 +369,7 @@ var EXTRAS = (function () {
   }
   function sugerirSemana() {
     // Solo platos que sirven de comida principal (ni salsas, ni postres, ni bebidas, ni pasabocas)
-    var NO_PRINCIPAL = /Llajua|Chimichurri|Pico de gallo|Sunomono|Edamame|Provoleta|Tajadas|Papelón|horchata|Limonada|Brigadeiros|Alfajores|Pudim|Bolo|Tiramisú|Churros|Arroz para sushi|Tamagoyaki|Caraotas|refritos|Bruschetta|Cuñapé|Pão|Tequeños|Sopa de miso|Gazpacho|Patatas bravas|Croquetas/;
+    var NO_PRINCIPAL = /Hogao|Ají colombiano|Patacones|Almojábanas|Pandebono|Buñuelos|Natilla|Arroz con leche|Torta de|Mousse|Arequipe|Obleas|Chocolate santafereño|Aguapanela|Salpicón|Changua|Arepa de choclo|Empanadas colombianas|Papas rellenas|Arroz de coco|Calentado|Llajua|Chimichurri|Pico de gallo|Sunomono|Edamame|Provoleta|Tajadas|Papelón|horchata|Limonada|Brigadeiros|Alfajores|Pudim|Bolo|Tiramisú|Churros|Arroz para sushi|Tamagoyaki|Caraotas|refritos|Bruschetta|Cuñapé|Pão|Tequeños|Sopa de miso|Gazpacho|Patatas bravas|Croquetas/;
     var cand = RECETAS.filter(function (r) {
       return /Platos fuertes|Sopas|Cocina |Comida japonesa/.test(r.categoria) && !NO_PRINCIPAL.test(r.nombre) &&
         r.prep + r.coccion <= 75 && pasaFiltros(r);
@@ -859,7 +859,7 @@ var EXTRAS = (function () {
         '<div class="fila-botones"><button class="boton secundario" data-accion="perfil-importar">Recuperar mis datos</button></div><p class="pista izq" id="aviso-perfil"></p></div>' + offlineHTML();
   }
   // ---- Modo sin internet: guardar todas las fotos en el celular
-  var CACHE_SW = 'paso-a-paso-v6'; // el mismo nombre que usa sw.js
+  var CACHE_SW = 'paso-a-paso-v7'; // el mismo nombre que usa sw.js
   function offlineHTML() {
     var hay = 'caches' in window;
     return '<div class="panel"><h2>📴 Usar sin internet</h2><p class="suave">Las recetas ya funcionan sin conexión. De las fotos solo se guardan las que ya viste; aquí puedes bajarlas todas (unos 30 MB, mejor con wifi).</p>' +

@@ -28,7 +28,7 @@
   var TONOS = { 'Básicos': 38, 'Desayunos': 46, 'Platos fuertes': 22, 'Acompañamientos': 56, 'Sopas': 62, 'Ensaladas': 74, 'Comida japonesa': 12, 'Cocina italiana': 28, 'Cocina española': 34, 'Cocina mexicana': 68, 'Cocina peruana': 18, 'Cocina argentina': 30, 'Cocina brasileña': 72, 'Cocina boliviana': 24, 'Cocina venezolana': 42, 'Sándwiches y arepas': 33, 'Pasabocas': 50, 'Postres': 15, 'Bebidas': 58 };
 
   // El libro va ordenado por capítulos (categorías); dentro de cada uno, primero las recetas con foto
-  var CAPITULOS = ['Mis recetas', 'Básicos', 'Desayunos', 'Platos fuertes', 'Acompañamientos', 'Sopas', 'Ensaladas', 'Comida japonesa', 'Cocina italiana', 'Cocina española', 'Cocina mexicana', 'Cocina peruana', 'Cocina argentina', 'Cocina brasileña', 'Cocina boliviana', 'Cocina venezolana', 'Sándwiches y arepas', 'Pasabocas', 'Postres', 'Bebidas'];
+  var CAPITULOS = ['Mis recetas', 'Cocina colombiana', 'Básicos', 'Desayunos', 'Platos fuertes', 'Acompañamientos', 'Sopas', 'Ensaladas', 'Comida japonesa', 'Cocina italiana', 'Cocina española', 'Cocina mexicana', 'Cocina peruana', 'Cocina argentina', 'Cocina brasileña', 'Cocina boliviana', 'Cocina venezolana', 'Sándwiches y arepas', 'Pasabocas', 'Postres', 'Bebidas'];
   RECETAS.sort(function (x, y) {
     return (CAPITULOS.indexOf(x.categoria) - CAPITULOS.indexOf(y.categoria)) || ((x.gen ? 1 : 0) - (y.gen ? 1 : 0));
   });
@@ -373,17 +373,81 @@
     pintarRejilla();
   }
 
+  // ---------- Búsqueda flexible: "postre japonés", "sopa colombiana"… ----------
+  // Si la búsqueda exacta no da nada, se entiende el TIPO (postre, sopa…) y la COCINA (japonesa, colombiana…) y se muestra lo más parecido.
+  var SEM_TIPOS = [
+    { n: 'postres', pal: /^(postres?|dulces?|tortas?|pasteles?|helados?|tartas?)$/, cat: 'Postres', nom: /postre|torta|natilla|arroz con leche|mousse|arequipe|brigadeiro|alfajor|pudim|bolo |tiramis|churro|mochi|dorayaki|helado|flan|purin|galleta|bunuelo|cocada|oblea|gelatina|pastel|tarta|brownie|castella|kakigori|sorbete|matcha/ },
+    { n: 'sopas', pal: /^(sopas?|caldos?|cremas?|guisos?)$/, cat: 'Sopas', nom: /sopa|caldo|crema de|ajiaco|sancocho|cuchuco|changua|mondongo|ramen|miso|gazpacho|minestrone|chupe|locro|puchero|udon|nikujaga|guiso/ },
+    { n: 'desayunos', pal: /^(desayunos?|onces?|mananas?)$/, cat: 'Desayunos', nom: /huevo|arepa|changua|calentado|panqueque|avena|tostada|desayuno|omelette|tamagoyaki|hotcake/ },
+    { n: 'bebidas', pal: /^(bebidas?|jugos?|batidos?|refrescos?|tragos?|licuados?)$/, cat: 'Bebidas', nom: /(^| )jugos?( |$)|batido|limonada|chocolate (caliente|santaf)|aguapanela|salpicon|horchata|smoothie|granizado|sorbete|matcha latte|cafe|avena/ },
+    { n: 'ensaladas', pal: /^(ensaladas?)$/, cat: 'Ensaladas', nom: /ensalada|sunomono/ },
+    { n: 'pasabocas', pal: /^(pasabocas?|snacks?|aperitivos?|entradas?|antojos?)$/, cat: 'Pasabocas', nom: /empanada|bunuelo|patacon|croqueta|tequeno|edamame|bruschetta|nachos|almojabana|pandebono|oblea/ }
+  ];
+  var SEM_COCINAS = [
+    { n: 'japonesa', pal: /^(japon\w*|sushi|nipon\w*)$/, cat: 'Comida japonesa' },
+    { n: 'italiana', pal: /^(italian\w*)$/, cat: 'Cocina italiana' },
+    { n: 'española', pal: /^(espan\w*)$/, cat: 'Cocina española' },
+    { n: 'mexicana', pal: /^(mexican\w*)$/, cat: 'Cocina mexicana' },
+    { n: 'peruana', pal: /^(peruan\w*)$/, cat: 'Cocina peruana' },
+    { n: 'argentina', pal: /^(argentin\w*)$/, cat: 'Cocina argentina' },
+    { n: 'brasileña', pal: /^(brasil\w*)$/, cat: 'Cocina brasileña' },
+    { n: 'boliviana', pal: /^(bolivian\w*)$/, cat: 'Cocina boliviana' },
+    { n: 'venezolana', pal: /^(venezolan\w*)$/, cat: 'Cocina venezolana' },
+    { n: 'colombiana', pal: /^(colombian\w*|criolla|criollo|tipica|tipico|paisa|bogotana|cundinamarquesa)$/, cat: 'Cocina colombiana' }
+  ];
+  function busquedaFlexible(tokens, ok, bono) {
+    var tipo = null, cocina = null, resto = [];
+    tokens.forEach(function (t) {
+      var hallado = false;
+      SEM_TIPOS.forEach(function (x) { if (!tipo && x.pal.test(t)) { tipo = x; hallado = true; } });
+      SEM_COCINAS.forEach(function (x) { if (!cocina && x.pal.test(t)) { cocina = x; hallado = true; } });
+      if (!hallado && t.length > 2 && !/^(comida|comidas|receta|recetas|plato|platos|tipo|estilo|del|con|para|las|los|una|algo|quiero|dame|busco)$/.test(t)) resto.push(t);
+    });
+    var base = RECETAS.filter(ok);
+    var esTipo = function (r) { return tipo && (r.categoria === tipo.cat || tipo.nom.test(sinTildes(r.nombre))); };
+    var esCocina = function (r) { return cocina && r.categoria === cocina.cat; };
+    var restoOk = function (r) { return !resto.length || puntaje(r, resto, false) > 0; };
+    var orden = function (a, b) { return (b.p - a.p) || ((a.r.gen ? 1 : 0) - (b.r.gen ? 1 : 0)); };
+    if (tipo || cocina) {
+      var exacta = base.filter(function (r) { return (!tipo || esTipo(r)) && (!cocina || esCocina(r)) && restoOk(r); });
+      if (exacta.length) return { lista: exacta, aviso: '' };
+      // Parecidas: lo de la cocina pedida y lo del tipo pedido, las que cumplen ambas primero
+      var par = [];
+      base.forEach(function (r) {
+        var p = (esCocina(r) ? 2 : 0) + (esTipo(r) ? 2 : 0);
+        if (p && restoOk(r)) par.push({ r: r, p: p + (bono && bono(r) ? 1 : 0) });
+      });
+      par.sort(orden);
+      if (par.length) {
+        var que = (tipo ? tipo.n : 'recetas') + (cocina ? ' de cocina ' + cocina.n : '');
+        return { lista: par.map(function (x) { return x.r; }), aviso: 'Todavía no tengo ' + que + ' con esas palabras exactas. Te muestro lo más parecido: ' + (cocina ? 'la cocina ' + cocina.n : '') + (cocina && tipo ? ' y ' : '') + (tipo ? 'los ' + tipo.n : '') + '.' };
+      }
+    }
+    // Sin tipo ni cocina: que sirva cualquiera de las palabras, las que más coinciden primero
+    var sueltas = tokens.filter(function (t) { return t.length > 2; }), pts = [];
+    base.forEach(function (r) {
+      var p = 0;
+      sueltas.forEach(function (t) { p += puntaje(r, [t], false); });
+      if (p) pts.push({ r: r, p: p + (bono && bono(r) ? 1 : 0) });
+    });
+    pts.sort(orden);
+    return { lista: pts.map(function (x) { return x.r; }), aviso: pts.length ? 'No hay una receta que tenga todas tus palabras. Te muestro las que coinciden con alguna.' : '' };
+  }
+
   function pintarRejilla() {
     var q = sinTildes(filtro.texto.trim());
     var pista = EXTRAS.interpretar(q); // entiende frases como "rápido", "sin horno", "para llevar"
     var tokens = pista.palabras;
     var mom = filtro.momento ? MOMENTOS.filter(function (m) { return m[0] === filtro.momento; })[0] : null;
-    var lista = [];
+    var lista = [], aviso = '';
+    var pasaBase = function (r) {
+      if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
+      if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
+      if (mom && !mom[3](r)) return false;
+      return EXTRAS.pasaFiltros(r) && pista.pasa(r);
+    };
     RECETAS.forEach(function (r) {
-      if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return;
-      if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return;
-      if (mom && !mom[3](r)) return;
-      if (!EXTRAS.pasaFiltros(r) || !pista.pasa(r)) return;
+      if (!pasaBase(r)) return;
       var s = tokens.length ? puntaje(r, tokens, false) : 1;
       if (s) lista.push({ r: r, s: s });
     });
@@ -394,6 +458,17 @@
       lista = lista.filter(function (x) { return !x.r.gen; }).concat(lista.filter(function (x) { return x.r.gen; }));
     }
     lista = lista.map(function (x) { return x.r; });
+    if (!lista.length && q) {
+      // Se vuelve a leer la búsqueda tal cual la escribió la persona (sin que "postre" o "rápido" bloqueen resultados)
+      var crudos = q.split(/[^a-z0-9ñ]+/).filter(function (w) { return w.length > 2; }).map(function (w) { return w.length > 4 && /[aeiou]s$/.test(w) ? w.slice(0, -1) : w; });
+      var sinReglas = function (r) {
+        if (filtro.categoria === 'Favoritas' && favoritos.indexOf(r.id) < 0) return false;
+        if (filtro.categoria !== 'Todas' && filtro.categoria !== 'Favoritas' && r.categoria !== filtro.categoria) return false;
+        if (mom && !mom[3](r)) return false;
+        return EXTRAS.pasaFiltros(r);
+      };
+      var fx = busquedaFlexible(crudos, sinReglas, pista.pasa); lista = fx.lista; aviso = fx.aviso;
+    }
 
     var entendido = document.getElementById('entendido');
     if (entendido) entendido.innerHTML = pista.etiquetas.length ? 'Entendí: ' + pista.etiquetas.map(function (t) { return '<span>' + t + '</span>'; }).join('') : '';
@@ -408,7 +483,7 @@
       return;
     }
     var desde = visibles - POR_PAGINA;
-    rejilla.innerHTML = lista.slice(0, visibles).map(function (r, i) { return tarjetaHTML(r, Math.max(0, i - desde), ''); }).join('');
+    rejilla.innerHTML = (aviso ? '<p class="aviso-flex">' + esc(aviso) + '</p>' : '') + lista.slice(0, visibles).map(function (r, i) { return tarjetaHTML(r, Math.max(0, i - desde), ''); }).join('');
     pie.innerHTML = '<p class="pista">Mostrando ' + Math.min(visibles, lista.length) + ' de ' + lista.length + ' recetas</p>' +
       (lista.length > visibles ? '<button class="boton grande" data-accion="mas">Ver más recetas ↓</button>' : '');
   }

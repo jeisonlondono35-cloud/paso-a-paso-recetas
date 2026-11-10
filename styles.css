@@ -853,3 +853,5 @@ a, button, input, select, textarea, label, summary { touch-action: manipulation;
 .mia-campo { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; font-weight: 600; font-size: .9rem; flex: 1; min-width: 110px; }
 .mia-fila { display: flex; gap: 10px; flex-wrap: wrap; }
 .mia-form textarea { min-height: 120px; resize: vertical; }
+
+.aviso-flex { grid-column: 1 / -1; margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--panel, rgba(128,128,128,.12)); border-left: 4px solid var(--acento); font-size: .92rem; }
